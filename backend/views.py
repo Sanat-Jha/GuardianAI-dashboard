@@ -14,6 +14,16 @@ def dashboard_view(request):
     guardian = request.user
     children = guardian.children.all()
 
+    # Import here to avoid circular import
+    from backend.models import ScreenTime
+
+    # Build a dict: child -> list of ScreenTime (last 30 days)
+    children_screen_time = {}
+    for c in children:
+        # Get last 30 days, most recent first
+        st_qs = ScreenTime.objects.filter(child=c).order_by('-date')
+        children_screen_time[c] = list(st_qs)
+
     if request.method == 'POST':
         # handle create child form
         first_name = request.POST.get('first_name', '')
@@ -24,7 +34,10 @@ def dashboard_view(request):
         messages.success(request, f'Child created with hash: {child.child_hash}')
         return redirect('backend:dashboard')
 
-    return render(request, 'accounts/dashboard.html', {'children': children})
+    return render(request, 'accounts/dashboard.html', {
+        'children': children,
+        'children_screen_time': children_screen_time,
+    })
 
 
 @csrf_exempt
@@ -66,10 +79,23 @@ def api_login(request):
 
 @csrf_exempt
 def api_ingest(request):
-    """Ingest endpoint for the mobile app to POST metrics for a child.
+    """
+    Ingest endpoint for the mobile app to POST metrics for a child.
 
-    Expects POST JSON containing at least `child_hash` and arbitrary metrics.
-    For now we just print the received payload and return a success response.
+    Expects POST JSON with this schema:
+    {
+        "screen_time_info": {
+            "child_hash": "...", // required
+            "date": "YYYY-MM-DD", // required, day for which data is sent
+            "total_screen_time": 12345, // required, total seconds for the day
+            "app_wise_data": { // required, app-wise and hour-wise usage
+                "com.whatsapp": {"09": 1200, "10": 800, ...},
+                "com.youtube": {"09": 600, ...},
+                ...
+            }
+        },
+        // other data can be present
+    }
     """
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
@@ -79,16 +105,18 @@ def api_ingest(request):
     except Exception:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
-    child_hash = payload.get('child_hash')
-    print('INGEST RECEIVED:', payload)
-
-    # Optionally validate child exists
-    if child_hash:
+    # Extract and store screen time info if present
+    screen_time_info = payload.get('screen_time_info')
+    screen_time_result = None
+    if screen_time_info:
+        from backend.models import ScreenTime
         try:
-            child = Child.objects.get(child_hash=child_hash)
-        except Child.DoesNotExist:
-            return JsonResponse({'error': 'unknown child_hash'}, status=404)
+            obj, created = ScreenTime.store_from_dict(screen_time_info)
+            screen_time_result = {'status': 'ok', 'created': created}
+        except ValueError as e:
+            screen_time_result = {'error': str(e)}
 
-    # For now just acknowledge
-    return JsonResponse({'status': 'ok', 'received': payload})
+    # You can handle other data types here as needed
+
+    return JsonResponse({'screen_time': screen_time_result or 'not provided'})
 from django.shortcuts import render

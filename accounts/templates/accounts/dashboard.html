@@ -5,7 +5,33 @@
 {% if children %}
   <ul>
   {% for c in children %}
-    <li>{{ c.get_full_name }} — hash: <strong>{{ c.child_hash }}</strong></li>
+    <li>
+      <strong>{{ c.get_full_name }}</strong> — hash: <strong>{{ c.child_hash }}</strong>
+      {% if children_screen_time and children_screen_time.c %}
+        {# fallback for dot-notation, but we use bracket below #}
+      {% endif %}
+      {% if children_screen_time and children_screen_time.c %}
+        {# fallback for dot-notation, but we use bracket below #}
+      {% endif %}
+      {% with st_list=children_screen_time.c %}{% endwith %}
+      {% for child, st_list in children_screen_time.items %}
+        {% if child == c and st_list %}
+          <details style="margin-top:8px;margin-bottom:8px;">
+            <summary>Screen time (last 30 days)</summary>
+            <ul style="margin:0;padding-left:1.2em;">
+              {% for st in st_list %}
+                <li>
+                  <strong>Date:</strong> {{ st.date }}<br>
+                  <strong>Total (seconds):</strong> {{ st.total_screen_time }}<br>
+                  <strong>App data:</strong>
+                  <pre style="background:#f3f3f3;padding:6px 8px;border-radius:6px;overflow-x:auto;">{{ st.app_wise_data|safe }}</pre>
+                </li>
+              {% endfor %}
+            </ul>
+          </details>
+        {% endif %}
+      {% endfor %}
+    </li>
   {% endfor %}
   </ul>
 {% else %}
