@@ -1,0 +1,12 @@
+{% extends 'accounts/base.html' %}
+
+{% block content %}
+<h2>Login</h2>
+<form method="post">
+  {% csrf_token %}
+  <label>Email: <input type="email" name="email" required></label><br>
+  <label>Password: <input type="password" name="password" required></label><br>
+  <button type="submit">Login</button>
+</form>
+<p><a href="{% url 'accounts:signup' %}">Sign up</a> | <a href="{% url 'accounts:password_reset' %}">Forgot password?</a></p>
+{% endblock %}

@@ -1,0 +1,118 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-wheel-metadata/
+wheels/
+pip-delete-this-directory.txt
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+*.sqlite3
+media/
+# If you collect static files into a directory, ignore it:
+staticfiles/
+# Common static dirs created by some setups (optional)
+static/
+# If you want to keep migrations, do NOT ignore migrations/; otherwise:
+# **/migrations/*.py
+# **/migrations/*.pyc
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.env/
+.venv/
+venv.bak/
+virtualenv/
+
+# Environment variables / secrets
+.env
+.env.* 
+credentials.json
+secrets.json
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# PyCharm
+*.iml
+*.ipr
+*.iws
+
+# mypy / type checkers
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Docker
+docker-compose.override.yml
+*.env
+
+# Node / frontend (if present)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+
+# Misc
+*.log
+*.pot
+*.mo

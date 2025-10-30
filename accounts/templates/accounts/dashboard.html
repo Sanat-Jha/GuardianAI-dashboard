@@ -1,0 +1,23 @@
+{% extends 'accounts/base.html' %}
+
+{% block content %}
+<h2>Your children</h2>
+{% if children %}
+  <ul>
+  {% for c in children %}
+    <li>{{ c.get_full_name }} — hash: <strong>{{ c.child_hash }}</strong></li>
+  {% endfor %}
+  </ul>
+{% else %}
+  <p>No children yet.</p>
+{% endif %}
+
+<h3>Create new child</h3>
+<form method="post">
+  {% csrf_token %}
+  <label>First name: <input type="text" name="first_name"></label><br>
+  <label>Last name: <input type="text" name="last_name"></label><br>
+  <label>Date of birth: <input type="date" name="date_of_birth"></label><br>
+  <button type="submit">Create Child</button>
+</form>
+{% endblock %}
