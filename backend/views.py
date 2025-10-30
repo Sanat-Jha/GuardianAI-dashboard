@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib.auth import authenticate
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
@@ -8,6 +9,10 @@ import json
 
 from accounts.models import Child
 
+
+from datetime import timedelta
+from django.utils import timezone
+from django.db.models import Sum, Count
 
 @login_required
 def dashboard_view(request):
@@ -19,26 +24,93 @@ def dashboard_view(request):
 
     # Build a dict: child -> list of ScreenTime (last 30 days)
     children_screen_time = {}
+    children_stats = {}
+    
     for c in children:
         st_qs = ScreenTime.objects.filter(child=c).order_by('-date')
         children_screen_time[c] = list(st_qs)
-
-    # No need to fetch location/site logs here; use related_name in template
+        
+        # Calculate statistics for charts
+        total_time = sum([st.total_screen_time for st in st_qs])
+        avg_time = total_time / len(st_qs) if st_qs else 0
+        
+        # Get app-wise breakdown for pie chart
+        app_breakdown = {}
+        for st in st_qs:
+            if st.app_wise_data:
+                try:
+                    apps_data = json.loads(st.app_wise_data)
+                    for app, time in apps_data.items():
+                        app_breakdown[app] = app_breakdown.get(app, 0) + int(time)
+                except:
+                    pass
+        
+        children_stats[c] = {
+            'total_screen_time': total_time,
+            'avg_screen_time': avg_time,
+            'app_breakdown': app_breakdown,
+            'location_count': c.location_history.count(),
+            'site_access_count': c.site_access_logs.count(),
+            'blocked_sites': c.site_access_logs.filter(accessed=False).count(),
+        }
 
     if request.method == 'POST':
-        # handle create child form
         first_name = request.POST.get('first_name', '')
         last_name = request.POST.get('last_name', '')
         date_of_birth = request.POST.get('date_of_birth') or None
-        # create the child and automatically link it to guardian
         child = guardian.create_child(first_name=first_name, last_name=last_name, date_of_birth=date_of_birth)
         messages.success(request, f'Child created with hash: {child.child_hash}')
         return redirect('backend:dashboard')
 
-    return render(request, 'accounts/dashboard.html', {
+    return render(request, 'dashboard/dashboard.html', {
         'children': children,
         'children_screen_time': children_screen_time,
+        'children_stats': children_stats,
     })
+
+
+# API endpoint for chart data
+@login_required
+def child_chart_data(request, child_hash):
+    from backend.models import Child, ScreenTime
+    import json
+    
+    try:
+        child = Child.objects.get(child_hash=child_hash, guardian=request.user)
+        st_qs = ScreenTime.objects.filter(child=child).order_by('-date')[:30]
+        
+        # Prepare data for line chart (screen time over days)
+        dates = [st.date.strftime('%m/%d') for st in reversed(st_qs)]
+        screen_times = [st.total_screen_time / 3600 for st in reversed(st_qs)]  # Convert to hours
+        
+        # Prepare data for pie chart (app breakdown)
+        app_breakdown = {}
+        for st in st_qs:
+            if st.app_wise_data:
+                try:
+                    apps_data = json.loads(st.app_wise_data)
+                    for app, time in apps_data.items():
+                        app_breakdown[app] = app_breakdown.get(app, 0) + int(time)
+                except:
+                    pass
+        
+        # Get top 5 apps
+        sorted_apps = sorted(app_breakdown.items(), key=lambda x: x[1], reverse=True)[:5]
+        app_labels = [app[0] for app in sorted_apps]
+        app_times = [app[1] / 3600 for app in sorted_apps]  # Convert to hours
+        
+        return JsonResponse({
+            'line_chart': {
+                'labels': dates,
+                'data': screen_times,
+            },
+            'pie_chart': {
+                'labels': app_labels,
+                'data': app_times,
+            }
+        })
+    except Child.DoesNotExist:
+        return JsonResponse({'error': 'Child not found'}, status=404)
 
 
 @csrf_exempt
@@ -139,4 +211,3 @@ def api_ingest(request):
         'location': location_result or 'not provided',
         'site_access': site_access_result or 'not provided',
     })
-from django.shortcuts import render

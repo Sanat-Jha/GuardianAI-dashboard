@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+{% load dashboard_filters %}
+{% block content %}
+
+{# ============================================ #}
+{# PARTIAL: Stats Card Component #}
+{# ============================================ #}
+{% partialdef stat_card %}
+<div class="stat-card">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-textsec text-sm uppercase tracking-wide">{{ label }}</p>
+      <p class="text-3xl font-bold text-primary mt-1">{{ value }}</p>
+    </div>
+    <div class="text-4xl opacity-30">{{ icon }}</div>
+  </div>
+</div>
+{% endpartialdef stat_card %}
+
+{# ============================================ #}
+{# PARTIAL: Child Header Component #}
+{# ============================================ #}
+{% partialdef child_header %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+  <div>
+    <h3 class="text-2xl font-bold text-primary">{{ child.get_full_name }}</h3>
+    <p class="text-sm text-textsec mt-1">
+      Child ID: <span class="font-mono text-secondary">{{ child.child_hash }}</span>
+    </p>
+  </div>
+  <div class="mt-4 sm:mt-0">
+    <span class="px-4 py-2 bg-secondary/20 text-secondary rounded-full text-sm font-semibold">
+      Active Monitoring
+    </span>
+  </div>
+</div>
+{% endpartialdef child_header %}
+
+{# ============================================ #}
+{# PARTIAL: Screen Time Chart Component #}
+{# ============================================ #}
+{% partialdef screen_time_chart %}
+<div class="glass-card mb-6">
+  <h4 class="text-lg font-semibold text-accent mb-4">📊 Screen Time Trend (Last 30 Days)</h4>
+  <div class="chart-container">
+    <canvas id="lineChart{{ child_hash }}"></canvas>
+  </div>
+</div>
+{% endpartialdef screen_time_chart %}
+
+{# ============================================ #}
+{# PARTIAL: App Usage Pie Chart Component #}
+{# ============================================ #}
+{% partialdef app_usage_chart %}
+<div class="glass-card mb-6">
+  <h4 class="text-lg font-semibold text-accent mb-4">📱 Top Apps Usage</h4>
+  <div class="chart-container">
+    <canvas id="pieChart{{ child_hash }}"></canvas>
+  </div>
+</div>
+{% endpartialdef app_usage_chart %}
+
+{# ============================================ #}
+{# PARTIAL: Location History Component #}
+{# ============================================ #}
+{% partialdef location_history %}
+<div class="glass-card mb-6">
+  <details>
+    <summary class="cursor-pointer text-accent font-semibold text-lg flex items-center gap-2 hover:text-primary transition-colors">
+      📍 Location History ({{ location_count }} entries)
+    </summary>
+    <div class="mt-4 space-y-3 max-h-96 overflow-y-auto">
+      {% for loc in locations %}
+        <div class="bg-black/30 rounded-lg p-4 border-l-4 border-primary">
+          <div class="flex flex-wrap gap-4 text-sm">
+            <span><span class="font-semibold text-primary">Time:</span> {{ loc.timestamp|date:"M d, Y H:i" }}</span>
+            <span><span class="font-semibold text-secondary">Coordinates:</span> {{ loc.latitude|floatformat:4 }}, {{ loc.longitude|floatformat:4 }}</span>
+          </div>
+        </div>
+      {% empty %}
+        <p class="text-textsec text-center py-4">No location data available</p>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+{% endpartialdef location_history %}
+
+{# ============================================ #}
+{# PARTIAL: Site Access Log Component #}
+{# ============================================ #}
+{% partialdef site_access_log %}
+<div class="glass-card mb-6">
+  <details>
+    <summary class="cursor-pointer text-accent font-semibold text-lg flex items-center gap-2 hover:text-primary transition-colors">
+      🌐 Site Access Log ({{ site_count }} entries)
+    </summary>
+    <div class="mt-4 space-y-3 max-h-96 overflow-y-auto">
+      {% for log in site_logs %}
+        <div class="bg-black/30 rounded-lg p-4 border-l-4 {% if log.accessed %}border-green-500{% else %}border-red-500{% endif %}">
+          <div class="flex flex-col gap-2 text-sm">
+            <span><span class="font-semibold text-primary">Time:</span> {{ log.timestamp|date:"M d, Y H:i" }}</span>
+            <span class="break-all"><span class="font-semibold text-secondary">URL:</span> {{ log.url }}</span>
+            <span class="font-semibold {% if log.accessed %}text-green-400{% else %}text-red-400{% endif %}">
+              {{ log.accessed|yesno:"✓ Accessed,✗ Blocked" }}
+            </span>
+          </div>
+        </div>
+      {% empty %}
+        <p class="text-textsec text-center py-4">No site access data available</p>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+{% endpartialdef site_access_log %}
+
+{# ============================================ #}
+{# PARTIAL: Screen Time Details Component #}
+{# ============================================ #}
+{% partialdef screen_time_details %}
+<div class="glass-card mb-6">
+  <details>
+    <summary class="cursor-pointer text-accent font-semibold text-lg flex items-center gap-2 hover:text-primary transition-colors">
+      ⏱️ Detailed Screen Time Records
+    </summary>
+    <div class="mt-4 space-y-3 max-h-96 overflow-y-auto">
+      {% for st in screen_time_list %}
+        <div class="bg-black/30 rounded-lg p-4">
+          <div class="flex flex-wrap gap-4 mb-3">
+            <span><span class="font-semibold text-primary">Date:</span> {{ st.date|date:"M d, Y" }}</span>
+            <span><span class="font-semibold text-secondary">Total Time:</span> {{ st.total_screen_time|floatformat:0 }}s ({{ st.total_screen_time|div:3600|floatformat:1 }}h)</span>
+          </div>
+          {% if st.app_wise_data %}
+            <div class="mt-2">
+              <span class="font-semibold text-accent">App Breakdown:</span>
+              <pre class="bg-black/40 rounded p-3 mt-2 text-xs overflow-x-auto text-textmain">{{ st.app_wise_data|safe }}</pre>
+            </div>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p class="text-textsec text-center py-4">No screen time data available</p>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+{% endpartialdef screen_time_details %}
+
+{# ============================================ #}
+{# PARTIAL: Create Child Form Component #}
+{# ============================================ #}
+{% partialdef create_child_form %}
+<div class="glass-card">
+  <h3 class="section-header">➕ Add New Child</h3>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <label class="flex-1">
+        <span class="block text-textsec mb-2 font-medium">First Name</span>
+        <input type="text" name="first_name" 
+               class="w-full rounded-lg bg-black/30 border-2 border-primary/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all" 
+               placeholder="Enter first name"
+               required>
+      </label>
+      <label class="flex-1">
+        <span class="block text-textsec mb-2 font-medium">Last Name</span>
+        <input type="text" name="last_name" 
+               class="w-full rounded-lg bg-black/30 border-2 border-primary/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all" 
+               placeholder="Enter last name"
+               required>
+      </label>
+      <label class="flex-1">
+        <span class="block text-textsec mb-2 font-medium">Date of Birth</span>
+        <input type="date" name="date_of_birth" 
+               class="w-full rounded-lg bg-black/30 border-2 border-primary/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all" 
+               required>
+      </label>
+    </div>
+    <button type="submit" class="btn-primary w-full sm:w-auto mt-4">
+      Create Child Profile
+    </button>
+  </form>
+</div>
+{% endpartialdef create_child_form %}
+
+{# ============================================ #}
+{# MAIN DASHBOARD CONTENT #}
+{# ============================================ #}
+
+<div class="mb-8">
+  <h2 class="section-header text-3xl mb-8">👨‍👩‍👧‍👦 Your Children Dashboard</h2>
+  
+  {% if children %}
+    {% for child in children %}
+      <div class="glass-card mb-8 p-6">
+        {# Render child header - partials automatically inherit context #}
+        {% partial child_header %}
+        
+        {# Statistics Overview #}
+        {% with stats=children_stats|get_item:child %}
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {# Set context variables before calling partial #}
+            {% with label="Total Screen Time" value=stats.total_screen_time_hours icon="⏰" %}
+              {% partial stat_card %}
+            {% endwith %}
+            {% with label="Avg Daily Time" value=stats.avg_screen_time_formatted icon="📊" %}
+              {% partial stat_card %}
+            {% endwith %}
+            {% with label="Locations Tracked" value=stats.location_count icon="📍" %}
+              {% partial stat_card %}
+            {% endwith %}
+            {% with label="Sites Blocked" value=stats.blocked_sites icon="🚫" %}
+              {% partial stat_card %}
+            {% endwith %}
+          </div>
+        {% endwith %}
+
+        {# Charts Section #}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {% with child_hash=child.child_hash %}
+            {% partial screen_time_chart %}
+          {% endwith %}
+          {% with child_hash=child.child_hash %}
+            {% partial app_usage_chart %}
+          {% endwith %}
+        </div>
+
+        {# Detailed Information #}
+        {% with locations=child.location_history.all location_count=child.location_history.count %}
+          {% partial location_history %}
+        {% endwith %}
+        
+        {% with site_logs=child.site_access_logs.all site_count=child.site_access_logs.count %}
+          {% partial site_access_log %}
+        {% endwith %}
+        
+        {% with screen_time_list=children_screen_time|get_item:child %}
+          {% partial screen_time_details %}
+        {% endwith %}
+      </div>
+
+      {# Chart.js initialization script for each child #}
+      <script>
+        // Fetch and render charts for {{ child.get_full_name }}
+        fetch('/dashboard/chart-data/{{ child.child_hash }}/')
+          .then(response => response.json())
+          .then(data => {
+            // Line Chart - Screen Time Trend
+            const lineCtx = document.getElementById('lineChart{{ child.child_hash }}').getContext('2d');
+            new Chart(lineCtx, {
+              type: 'line',
+              data: {
+                labels: data.line_chart.labels,
+                datasets: [{
+                  label: 'Screen Time (hours)',
+                  data: data.line_chart.data,
+                  borderColor: '#00E5FF',
+                  backgroundColor: 'rgba(0, 229, 255, 0.1)',
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4,
+                  pointBackgroundColor: '#00E5FF',
+                  pointBorderColor: '#fff',
+                  pointBorderWidth: 2,
+                  pointRadius: 4,
+                  pointHoverRadius: 6,
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    labels: { color: '#E0E0E0', font: { size: 12 } }
+                  },
+                  tooltip: {
+                    backgroundColor: 'rgba(30, 30, 46, 0.9)',
+                    titleColor: '#00E5FF',
+                    bodyColor: '#E0E0E0',
+                    borderColor: '#00E5FF',
+                    borderWidth: 1,
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: { color: '#A0A0A0' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                  },
+                  x: {
+                    ticks: { color: '#A0A0A0' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                  }
+                }
+              }
+            });
+
+            // Pie Chart - App Usage
+            const pieCtx = document.getElementById('pieChart{{ child.child_hash }}').getContext('2d');
+            new Chart(pieCtx, {
+              type: 'doughnut',
+              data: {
+                labels: data.pie_chart.labels,
+                datasets: [{
+                  data: data.pie_chart.data,
+                  backgroundColor: [
+                    '#00E5FF',
+                    '#8E2DE2',
+                    '#FF00C8',
+                    '#FFD700',
+                    '#FF6B6B',
+                  ],
+                  borderColor: '#1E1E2E',
+                  borderWidth: 2,
+                  hoverOffset: 8,
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                    labels: { 
+                      color: '#E0E0E0',
+                      font: { size: 11 },
+                      padding: 15,
+                    }
+                  },
+                  tooltip: {
+                    backgroundColor: 'rgba(30, 30, 46, 0.9)',
+                    titleColor: '#00E5FF',
+                    bodyColor: '#E0E0E0',
+                    borderColor: '#00E5FF',
+                    borderWidth: 1,
+                    callbacks: {
+                      label: function(context) {
+                        return context.label + ': ' + context.parsed.toFixed(1) + 'h';
+                      }
+                    }
+                  }
+                }
+              }
+            });
+          })
+          .catch(error => console.error('Error loading chart data:', error));
+      </script>
+    {% endfor %}
+  {% else %}
+    <div class="glass-card text-center py-12">
+      <div class="text-6xl mb-4">👶</div>
+      <p class="text-xl text-textsec mb-2">No children profiles yet</p>
+      <p class="text-sm text-textsec">Create your first child profile below to start monitoring</p>
+    </div>
+  {% endif %}
+</div>
+
+{# Create Child Form #}
+<div class="mt-10">
+  {% partial create_child_form %}
+</div>
+
+{% endblock %}
