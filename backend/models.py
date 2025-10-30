@@ -66,3 +66,109 @@ class ScreenTime(models.Model):
 		)
 		ScreenTime.prune_old_data()
 		return obj, created
+
+
+class LocationHistory(models.Model):
+	"""
+	Stores per-child location history for the last 30 days.
+	Each entry: child, timestamp, latitude, longitude.
+	Automatically prunes entries older than 30 days on save.
+	"""
+	child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='location_history')
+	timestamp = models.DateTimeField()
+	latitude = models.FloatField()
+	longitude = models.FloatField()
+	created = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ['-timestamp']
+
+	def save(self, *args, **kwargs):
+		super().save(*args, **kwargs)
+		cutoff = timezone.now() - timezone.timedelta(days=30)
+		LocationHistory.objects.filter(child=self.child, timestamp__lt=cutoff).delete()
+
+	@staticmethod
+	def store_from_dict(data):
+		"""
+		Expects dict with: child_hash, timestamp (iso), latitude, longitude
+		"""
+		from accounts.models import Child
+		child_hash = data.get('child_hash')
+		timestamp = data.get('timestamp')
+		latitude = data.get('latitude')
+		longitude = data.get('longitude')
+		if not child_hash or not timestamp or latitude is None or longitude is None:
+			raise ValueError('child_hash, timestamp, latitude, longitude required')
+		try:
+			child = Child.objects.get(child_hash=child_hash)
+		except Child.DoesNotExist:
+			raise ValueError('unknown child_hash')
+		obj = LocationHistory.objects.create(
+			child=child,
+			timestamp=timestamp,
+			latitude=latitude,
+			longitude=longitude
+		)
+		LocationHistory.prune_old_data()
+		return obj
+
+	@staticmethod
+	def prune_old_data():
+		cutoff = timezone.now() - timezone.timedelta(days=30)
+		LocationHistory.objects.filter(timestamp__lt=cutoff).delete()
+
+
+class SiteAccessLog(models.Model):
+	"""
+	Stores per-child site access/block events for the last 30 days.
+	Each entry: child, timestamp, url, accessed (bool)
+	Automatically prunes entries older than 30 days on save.
+	"""
+	child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='site_access_logs')
+	timestamp = models.DateTimeField()
+	url = models.TextField()
+	accessed = models.BooleanField(help_text='True if accessed, False if blocked')
+	created = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ['-timestamp']
+
+	def save(self, *args, **kwargs):
+		super().save(*args, **kwargs)
+		cutoff = timezone.now() - timezone.timedelta(days=30)
+		SiteAccessLog.objects.filter(child=self.child, timestamp__lt=cutoff).delete()
+
+	@staticmethod
+	def store_from_list(child_hash, log_list):
+		"""
+		Expects child_hash and a list of dicts: {timestamp, url, accessed}
+		"""
+		from accounts.models import Child
+		if not child_hash or not isinstance(log_list, list):
+			raise ValueError('child_hash and list of logs required')
+		try:
+			child = Child.objects.get(child_hash=child_hash)
+		except Child.DoesNotExist:
+			raise ValueError('unknown child_hash')
+		objs = []
+		for entry in log_list:
+			timestamp = entry.get('timestamp')
+			url = entry.get('url')
+			accessed = entry.get('accessed')
+			if not timestamp or url is None or accessed is None:
+				continue
+			obj = SiteAccessLog.objects.create(
+				child=child,
+				timestamp=timestamp,
+				url=url,
+				accessed=bool(accessed)
+			)
+			objs.append(obj)
+		SiteAccessLog.prune_old_data()
+		return objs
+
+	@staticmethod
+	def prune_old_data():
+		cutoff = timezone.now() - timezone.timedelta(days=30)
+		SiteAccessLog.objects.filter(timestamp__lt=cutoff).delete()

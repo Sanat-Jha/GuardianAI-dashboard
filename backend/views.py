@@ -20,9 +20,10 @@ def dashboard_view(request):
     # Build a dict: child -> list of ScreenTime (last 30 days)
     children_screen_time = {}
     for c in children:
-        # Get last 30 days, most recent first
         st_qs = ScreenTime.objects.filter(child=c).order_by('-date')
         children_screen_time[c] = list(st_qs)
+
+    # No need to fetch location/site logs here; use related_name in template
 
     if request.method == 'POST':
         # handle create child form
@@ -84,16 +85,9 @@ def api_ingest(request):
 
     Expects POST JSON with this schema:
     {
-        "screen_time_info": {
-            "child_hash": "...", // required
-            "date": "YYYY-MM-DD", // required, day for which data is sent
-            "total_screen_time": 12345, // required, total seconds for the day
-            "app_wise_data": { // required, app-wise and hour-wise usage
-                "com.whatsapp": {"09": 1200, "10": 800, ...},
-                "com.youtube": {"09": 600, ...},
-                ...
-            }
-        },
+        "screen_time_info": { ... },
+        "location_info": { ... },
+        "site_access_info": { ... },
         // other data can be present
     }
     """
@@ -105,18 +99,44 @@ def api_ingest(request):
     except Exception:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
+    from backend.models import ScreenTime, LocationHistory, SiteAccessLog
+
     # Extract and store screen time info if present
     screen_time_info = payload.get('screen_time_info')
     screen_time_result = None
     if screen_time_info:
-        from backend.models import ScreenTime
         try:
             obj, created = ScreenTime.store_from_dict(screen_time_info)
             screen_time_result = {'status': 'ok', 'created': created}
         except ValueError as e:
             screen_time_result = {'error': str(e)}
 
-    # You can handle other data types here as needed
+    # Extract and store location info if present
+    location_info = payload.get('location_info')
+    location_result = None
+    if location_info:
+        try:
+            obj = LocationHistory.store_from_dict(location_info)
+            location_result = {'status': 'ok'}
+        except ValueError as e:
+            location_result = {'error': str(e)}
 
-    return JsonResponse({'screen_time': screen_time_result or 'not provided'})
+    # Extract and store site access info if present
+    site_access_info = payload.get('site_access_info')
+    site_access_result = None
+    if site_access_info:
+        # Expecting: {"child_hash": ..., "logs": [ {timestamp, url, accessed}, ... ]}
+        child_hash = site_access_info.get('child_hash')
+        logs = site_access_info.get('logs')
+        try:
+            objs = SiteAccessLog.store_from_list(child_hash, logs)
+            site_access_result = {'status': 'ok', 'count': len(objs)}
+        except ValueError as e:
+            site_access_result = {'error': str(e)}
+
+    return JsonResponse({
+        'screen_time': screen_time_result or 'not provided',
+        'location': location_result or 'not provided',
+        'site_access': site_access_result or 'not provided',
+    })
 from django.shortcuts import render

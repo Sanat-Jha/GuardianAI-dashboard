@@ -1,13 +1,27 @@
+
 {% extends 'accounts/base.html' %}
 
 {% block content %}
-<h2>Sign up</h2>
-<form method="post">
-  {% csrf_token %}
-  <label>Full name: <input type="text" name="full_name"></label><br>
-  <label>Email: <input type="email" name="email" required></label><br>
-  <label>Password: <input type="password" name="password" required></label><br>
-  <button type="submit">Create account</button>
-</form>
-<p><a href="{% url 'accounts:login' %}">Already have an account? Login</a></p>
+<div class="max-w-md mx-auto glass-card mt-12">
+  <h2 class="text-2xl font-bold text-primary text-center mb-6 uppercase tracking-widest">Sign Up</h2>
+  <form method="post" class="space-y-5">
+    {% csrf_token %}
+    <label class="block">
+      <span class="text-textsec mb-1 block">Full name</span>
+      <input type="text" name="full_name" class="w-full rounded-lg bg-black/30 border border-primary px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-textmain" required>
+    </label>
+    <label class="block">
+      <span class="text-textsec mb-1 block">Email</span>
+      <input type="email" name="email" required class="w-full rounded-lg bg-black/30 border border-primary px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-textmain">
+    </label>
+    <label class="block">
+      <span class="text-textsec mb-1 block">Password</span>
+      <input type="password" name="password" required class="w-full rounded-lg bg-black/30 border border-primary px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-textmain">
+    </label>
+    <button type="submit" class="btn-primary w-full mt-2">Create Account</button>
+  </form>
+  <div class="mt-6 text-center text-sm">
+    <a href="{% url 'accounts:login' %}" class="text-primary hover:text-secondary transition">Already have an account? Login</a>
+  </div>
+</div>
 {% endblock %}
