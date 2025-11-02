@@ -81,7 +81,7 @@
         </div>
         
         {# Top Apps List #}
-        {% with top_apps=data.top_apps child_hash=child.child_hash %}
+        {% with top_apps=data.top_apps %}
           {% include 'dashboard/components/top_apps_list.html' %}
         {% endwith %}
         

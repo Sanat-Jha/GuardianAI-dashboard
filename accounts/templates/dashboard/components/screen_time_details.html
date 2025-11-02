@@ -1,0 +1,32 @@
+{% load dashboard_filters %}
+<div class="glass-card">
+  <details class="group">
+    <summary class="cursor-pointer text-textmain font-semibold text-base flex items-center justify-between hover:text-primary transition-colors">
+      <span>Detailed Screen Time Records</span>
+      <span class="bg-primary/10 text-primary px-2 py-1 rounded text-xs border border-primary/20">
+        {{ screen_time_list|length }} days
+      </span>
+    </summary>
+    <div class="mt-4 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+      {% for st in screen_time_list %}
+        <div class="bg-black/30 rounded p-3 hover:bg-black/40 transition-colors">
+          <div class="flex flex-wrap gap-3 mb-2 text-xs">
+            <div class="text-textmain">{{ st.date|date:"M d, Y" }}</div>
+            <div class="text-textsec">
+              {{ st.total_screen_time|floatformat:0 }}s 
+              <span class="text-primary">({{ st.total_screen_time|div:3600|floatformat:1 }}h)</span>
+            </div>
+          </div>
+          {% if st.app_wise_data %}
+            <div class="mt-2">
+              <div class="text-textsec text-xs mb-1">App Breakdown</div>
+              <pre class="bg-black/50 rounded p-2 text-xs overflow-x-auto text-textmain border border-primary/10">{{ st.app_wise_data|safe }}</pre>
+            </div>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p class="text-textsec text-center py-8 text-sm">No screen time data available</p>
+      {% endfor %}
+    </div>
+  </details>
+</div>

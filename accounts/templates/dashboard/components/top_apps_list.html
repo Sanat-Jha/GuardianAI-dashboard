@@ -1,0 +1,18 @@
+<div class="glass-card">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h3 class="text-lg font-semibold text-textmain">Application Analytics</h3>
+      <p class="text-xs text-textsec mt-1">Detailed breakdown of app usage</p>
+    </div>
+  </div>
+  
+  <div id="appAnalytics{{ child_hash }}" class="space-y-4">
+    <!-- Will be populated by JavaScript -->
+    <div class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+        <p class="text-sm text-textsec">Loading analytics...</p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,57 @@
+<div id="addChildModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="glass-card max-w-2xl w-full animate-scale-in">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-xl font-semibold text-textmain">
+        Add New Child Profile
+      </h3>
+      <button onclick="toggleAddChildModal()" 
+              class="text-textsec hover:text-primary transition-colors text-2xl leading-none">
+        ×
+      </button>
+    </div>
+    
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-textsec mb-2 text-sm font-medium">
+            First Name
+          </label>
+          <input type="text" name="first_name" 
+                 class="w-full rounded bg-black/30 border border-primary/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all text-sm" 
+                 placeholder="Enter first name"
+                 required>
+        </div>
+        
+        <div>
+          <label class="block text-textsec mb-2 text-sm font-medium">
+            Last Name
+          </label>
+          <input type="text" name="last_name" 
+                 class="w-full rounded bg-black/30 border border-primary/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all text-sm" 
+                 placeholder="Enter last name"
+                 required>
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-textsec mb-2 text-sm font-medium">
+          Date of Birth
+        </label>
+        <input type="date" name="date_of_birth" 
+               class="w-full rounded bg-black/30 border border-primary/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all text-sm" 
+               required>
+      </div>
+      
+      <div class="flex gap-3 pt-4">
+        <button type="submit" class="btn-primary flex-1">
+          Create Profile
+        </button>
+        <button type="button" onclick="toggleAddChildModal()" 
+                class="px-4 py-2 rounded border border-textsec/30 text-textsec hover:border-primary hover:text-primary transition-all text-sm">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

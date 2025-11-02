@@ -1,0 +1,27 @@
+<div class="glass-card">
+  <details class="group">
+    <summary class="cursor-pointer text-textmain font-semibold text-base flex items-center justify-between hover:text-primary transition-colors">
+      <span>Site Access Log</span>
+      <span class="bg-primary/10 text-primary px-2 py-1 rounded text-xs border border-primary/20">
+        {{ site_count }} entries
+      </span>
+    </summary>
+    <div class="mt-4 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+      {% for log in site_logs %}
+        <div class="bg-black/30 rounded p-3 border-l-2 {% if log.accessed %}border-green-500{% else %}border-red-500{% endif %} hover:bg-black/40 transition-colors">
+          <div class="flex flex-col gap-2 text-xs">
+            <div class="flex items-start justify-between gap-4">
+              <span class="text-textmain">{{ log.timestamp|date:"M d, Y H:i" }}</span>
+              <span class="font-medium text-xs px-2 py-0.5 rounded {% if log.accessed %}bg-green-500/10 text-green-400 border border-green-500/20{% else %}bg-red-500/10 text-red-400 border border-red-500/20{% endif %}">
+                {% if log.accessed %}Accessed{% else %}Blocked{% endif %}
+              </span>
+            </div>
+            <div class="break-all bg-black/40 p-2 rounded text-textsec">{{ log.url }}</div>
+          </div>
+        </div>
+      {% empty %}
+        <p class="text-textsec text-center py-8 text-sm">No site access data available</p>
+      {% endfor %}
+    </div>
+  </details>
+</div>

@@ -1,0 +1,28 @@
+<div class="glass-card mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+        <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold text-textmain">{{ child.get_full_name }}</h2>
+        <p class="text-xs text-textsec mt-1">
+          ID: <span class="font-mono text-primary">{{ child.child_hash }}</span>
+        </p>
+        {% if child.date_of_birth %}
+          <p class="text-xs text-textsec mt-1">
+            Born: {{ child.date_of_birth|date:"M d, Y" }}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="mt-4 sm:mt-0">
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-400 rounded text-xs font-medium border border-green-500/20">
+        <span class="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+        Active
+      </span>
+    </div>
+  </div>
+</div>

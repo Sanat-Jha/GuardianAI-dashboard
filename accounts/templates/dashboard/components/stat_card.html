@@ -1,0 +1,11 @@
+<div class="stat-card group">
+  <div class="flex items-center justify-between">
+    <div class="flex-1">
+      <p class="text-textsec text-xs uppercase tracking-wide font-medium mb-1">{{ label }}</p>
+      <p class="text-2xl font-semibold text-textmain">{{ value }}</p>
+      {% if subtitle %}
+        <p class="text-xs text-textsec mt-1">{{ subtitle }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>

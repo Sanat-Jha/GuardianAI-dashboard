@@ -1,0 +1,15 @@
+<div class="glass-card">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h3 class="text-lg font-semibold text-textmain">Screen Time Trend</h3>
+      <p class="text-xs text-textsec mt-1">Daily usage over the last 30 days</p>
+    </div>
+    <div class="flex items-center gap-2 bg-black/30 px-3 py-1.5 rounded-lg border border-primary/20">
+      <div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+      <span class="text-xs text-textsec font-medium">Live Data</span>
+    </div>
+  </div>
+  <div class="chart-container relative" style="height: 320px;">
+    <canvas id="lineChart{{ child_hash }}"></canvas>
+  </div>
+</div>

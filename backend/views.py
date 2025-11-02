@@ -112,33 +112,47 @@ def child_chart_data(request, child_hash):
     import json
     
     try:
-        child = Child.objects.get(child_hash=child_hash, guardian=request.user)
+        child = Child.objects.get(child_hash=child_hash, guardians=request.user)
         st_qs = ScreenTime.objects.filter(child=child).order_by('-date')[:30]
         
         # Prepare data for line chart (screen time over days)
-        dates = [st.date.strftime('%m/%d') for st in reversed(st_qs)]
-        screen_times = [st.total_screen_time / 3600 for st in reversed(st_qs)]  # Convert to hours
+        dates = []
+        screen_times = []
+        for st in reversed(list(st_qs)):
+            dates.append(st.date.strftime('%m/%d'))
+            screen_times.append(round(st.total_screen_time / 3600, 2))  # Convert to hours
         
         # Prepare data for pie chart (app breakdown)
         app_breakdown = {}
         for st in st_qs:
             if st.app_wise_data:
                 try:
-                    apps_data = json.loads(st.app_wise_data)
-                    for app, time in apps_data.items():
-                        app_breakdown[app] = app_breakdown.get(app, 0) + int(time)
-                except:
-                    pass
+                    # app_wise_data is already a dict (JSONField auto-deserializes)
+                    apps_data = st.app_wise_data
+                    
+                    # Handle nested structure: {app: {hour: seconds, ...}, ...}
+                    for app, time_data in apps_data.items():
+                        if isinstance(time_data, dict):
+                            # Sum all hours for this app
+                            total_time = sum(int(v) for v in time_data.values())
+                            app_breakdown[app] = app_breakdown.get(app, 0) + total_time
+                        else:
+                            # If it's just a number
+                            app_breakdown[app] = app_breakdown.get(app, 0) + float(time_data)
+                except Exception as e:
+                    # Skip if parsing fails
+                    print(f"Error parsing app data: {e}")
+                    continue
         
         # Get top 5 apps
         sorted_apps = sorted(app_breakdown.items(), key=lambda x: x[1], reverse=True)[:5]
-        app_labels = [app[0] for app in sorted_apps]
-        app_times = [app[1] / 3600 for app in sorted_apps]  # Convert to hours
+        app_labels = [app[0] for app in sorted_apps] if sorted_apps else ['No Data']
+        app_times = [round(app[1] / 3600, 2) for app in sorted_apps] if sorted_apps else [0]  # Convert to hours
         
         return JsonResponse({
             'line_chart': {
-                'labels': dates,
-                'data': screen_times,
+                'labels': dates if dates else ['No Data'],
+                'data': screen_times if screen_times else [0],
             },
             'pie_chart': {
                 'labels': app_labels,
@@ -147,6 +161,16 @@ def child_chart_data(request, child_hash):
         })
     except Child.DoesNotExist:
         return JsonResponse({'error': 'Child not found'}, status=404)
+    except Exception as e:
+        # Log the error and return a proper JSON response
+        import traceback
+        print(f"Error in child_chart_data: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'error': str(e),
+            'line_chart': {'labels': ['No Data'], 'data': [0]},
+            'pie_chart': {'labels': ['No Data'], 'data': [0]}
+        }, status=500)
 
 
 @csrf_exempt
