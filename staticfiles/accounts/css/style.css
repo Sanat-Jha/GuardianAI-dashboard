@@ -1,0 +1,59 @@
+/* Basic, clean styles for Guardian AI dashboard and auth pages */
+:root{
+  --bg:#f7fafc;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --accent:#2563eb;
+  --accent-contrast:#fff;
+  --border:#e5e7eb;
+  --max-w:900px;
+}
+
+*{box-sizing:border-box}
+body{
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  margin:0;
+  background:var(--bg);
+  color:#111827;
+  line-height:1.4;
+}
+.container{
+  max-width:var(--max-w);
+  margin:24px auto;
+  padding:0 16px;
+}
+.site-header{
+  background:linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%);
+  color:var(--accent-contrast);
+  padding:12px 0;
+}
+.site-header .container{display:flex;align-items:center;justify-content:space-between}
+.brand{margin:0;font-size:1.25rem}
+.main-nav a{color:var(--accent-contrast);text-decoration:none;margin-left:12px;padding:6px 8px;border-radius:6px}
+.main-nav a:hover{background:rgba(255,255,255,0.08)}
+
+.messages{list-style:none;padding:0;margin:12px 0}
+.message{background:var(--card);border:1px solid var(--border);padding:10px;border-radius:6px;margin-bottom:8px}
+
+h2{margin-top:0}
+
+.card{background:var(--card);border:1px solid var(--border);padding:16px;border-radius:8px}
+
+/* Forms */
+input[type="text"],input[type="email"],input[type="password"],input[type="date"],textarea,select{
+  width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-top:6px;margin-bottom:12px;
+}
+label{display:block;font-size:0.95rem;color:var(--muted)}
+button{background:var(--accent);color:var(--accent-contrast);border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+button:hover{opacity:0.95}
+
+/* Dashboard list */
+ul{padding-left:1.1rem}
+li{padding:8px 0;border-bottom:1px dashed var(--border)}
+
+.site-footer{color:var(--muted);padding:18px 0;text-align:center;font-size:0.9rem;margin-top:24px}
+
+@media (max-width:600px){
+  .site-header .container{flex-direction:column;align-items:flex-start}
+  .main-nav{margin-top:8px}
+}

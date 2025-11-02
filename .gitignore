@@ -49,8 +49,6 @@ db.sqlite3
 db.sqlite3-journal
 *.sqlite3
 media/
-# If you collect static files into a directory, ignore it:
-staticfiles/
 # Common static dirs created by some setups (optional)
 static/
 # If you want to keep migrations, do NOT ignore migrations/; otherwise:
