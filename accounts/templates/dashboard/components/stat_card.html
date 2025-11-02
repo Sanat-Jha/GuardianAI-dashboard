@@ -1,11 +1,28 @@
-<div class="stat-card group">
-  <div class="flex items-center justify-between">
+<div class="stat-card group relative overflow-hidden">
+  <!-- Animated background gradient on hover -->
+  <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+  
+  <!-- Decorative corner accent -->
+  <div class="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:translate-x-6 group-hover:-translate-y-6 transition-transform duration-500"></div>
+  
+  <div class="relative flex items-center justify-between">
     <div class="flex-1">
-      <p class="text-textsec text-xs uppercase tracking-wide font-medium mb-1">{{ label }}</p>
-      <p class="text-2xl font-semibold text-textmain">{{ value }}</p>
+      <div class="flex items-center gap-2 mb-2">
+        <div class="w-1 h-4 bg-primary rounded-full"></div>
+        <p class="text-textsec text-xs uppercase tracking-wider font-semibold">{{ label }}</p>
+      </div>
+      <p class="text-3xl font-bold text-textmain group-hover:text-primary transition-colors duration-300 mb-1">{{ value }}</p>
       {% if subtitle %}
-        <p class="text-xs text-textsec mt-1">{{ subtitle }}</p>
+        <div class="flex items-center gap-1.5 mt-2">
+          <svg class="w-3 h-3 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+          </svg>
+          <p class="text-xs text-textsec font-medium">{{ subtitle }}</p>
+        </div>
       {% endif %}
     </div>
+    
+    <!-- Animated pulse indicator -->
+    <div class="absolute bottom-2 right-2 w-2 h-2 bg-primary rounded-full opacity-0 group-hover:opacity-100 animate-pulse"></div>
   </div>
 </div>

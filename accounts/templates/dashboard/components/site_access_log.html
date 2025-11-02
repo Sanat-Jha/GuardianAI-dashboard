@@ -1,26 +1,72 @@
-<div class="glass-card">
-  <details class="group">
-    <summary class="cursor-pointer text-textmain font-semibold text-base flex items-center justify-between hover:text-primary transition-colors">
-      <span>Site Access Log</span>
-      <span class="bg-primary/10 text-primary px-2 py-1 rounded text-xs border border-primary/20">
-        {{ site_count }} entries
-      </span>
+<div class="glass-card group hover:border-primary/30 transition-all duration-300">
+  <details class="group/details">
+    <summary class="cursor-pointer flex items-center justify-between hover:translate-x-1 transition-transform duration-200">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-transform duration-300">
+          <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-textmain font-bold text-lg group-hover:text-primary transition-colors">Site Access Log</h3>
+          <p class="text-xs text-textsec">Website access monitoring</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="bg-gradient-to-r from-primary/10 to-accent/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold border border-primary/30 shadow-lg shadow-primary/5">
+          {{ site_count }} <span class="text-xs text-textsec font-normal">entries</span>
+        </span>
+        <svg class="w-5 h-5 text-primary group-open/details:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </div>
     </summary>
-    <div class="mt-4 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+    
+    <div class="mt-6 space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
       {% for log in site_logs %}
-        <div class="bg-black/30 rounded p-3 border-l-2 {% if log.accessed %}border-green-500{% else %}border-red-500{% endif %} hover:bg-black/40 transition-colors">
-          <div class="flex flex-col gap-2 text-xs">
-            <div class="flex items-start justify-between gap-4">
-              <span class="text-textmain">{{ log.timestamp|date:"M d, Y H:i" }}</span>
-              <span class="font-medium text-xs px-2 py-0.5 rounded {% if log.accessed %}bg-green-500/10 text-green-400 border border-green-500/20{% else %}bg-red-500/10 text-red-400 border border-red-500/20{% endif %}">
-                {% if log.accessed %}Accessed{% else %}Blocked{% endif %}
+        <div class="relative bg-gradient-to-r from-black/40 to-black/20 rounded-lg p-4 border {% if log.accessed %}border-green-500/20 hover:border-green-500/40{% else %}border-red-500/20 hover:border-red-500/40{% endif %} transition-all duration-300 group/item">
+          <!-- Left accent bar -->
+          <div class="absolute left-0 top-0 bottom-0 w-1 {% if log.accessed %}bg-gradient-to-b from-green-500 to-green-600{% else %}bg-gradient-to-b from-red-500 to-red-600{% endif %} rounded-l-lg"></div>
+          
+          <div class="flex flex-col gap-3 ml-2">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 {% if log.accessed %}text-green-400{% else %}text-red-400{% endif %} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span class="text-textmain text-sm font-medium">{{ log.timestamp|date:"M d, Y H:i" }}</span>
+              </div>
+              <span class="font-bold text-xs px-3 py-1 rounded-lg {% if log.accessed %}bg-green-500/10 text-green-400 border border-green-500/30{% else %}bg-red-500/10 text-red-400 border border-red-500/30{% endif %} shadow-lg">
+                {% if log.accessed %}
+                  <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  ACCESSED
+                {% else %}
+                  <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                  BLOCKED
+                {% endif %}
               </span>
             </div>
-            <div class="break-all bg-black/40 p-2 rounded text-textsec">{{ log.url }}</div>
+            
+            <div class="flex items-start gap-2 bg-black/50 p-3 rounded-lg border border-primary/10">
+              <svg class="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+              </svg>
+              <span class="break-all text-textsec text-sm font-mono leading-relaxed">{{ log.url }}</span>
+            </div>
           </div>
         </div>
       {% empty %}
-        <p class="text-textsec text-center py-8 text-sm">No site access data available</p>
+        <div class="text-center py-12">
+          <svg class="w-16 h-16 mx-auto text-textsec/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+          </svg>
+          <p class="text-textsec text-sm font-medium">No site access data available</p>
+          <p class="text-textsec/60 text-xs mt-1">Website access logs will appear here</p>
+        </div>
       {% endfor %}
     </div>
   </details>
