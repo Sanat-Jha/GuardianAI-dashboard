@@ -22,19 +22,23 @@ def dashboard_view(request):
     # Import here to avoid circular import
     from backend.models import ScreenTime
 
-    # Build a dict: child -> list of ScreenTime (last 30 days)
-    children_screen_time = {}
-    children_stats = {}
+    # Build a dict: child -> structured data
+    children_data = {}
     
     for c in children:
-        st_qs = ScreenTime.objects.filter(child=c).order_by('-date')
-        children_screen_time[c] = list(st_qs)
+        # Get screen time records (last 30 days)
+        st_qs = ScreenTime.objects.filter(child=c).order_by('-date')[:30]
+        screen_time_list = list(st_qs)
         
-        # Calculate statistics for charts
+        # Calculate statistics
         total_time = sum([st.total_screen_time for st in st_qs])
         avg_time = total_time / len(st_qs) if st_qs else 0
         
-        # Get app-wise breakdown for pie chart
+        # Format time strings
+        total_hours = total_time / 3600
+        avg_hours = avg_time / 3600
+        
+        # Get app-wise breakdown
         app_breakdown = {}
         for st in st_qs:
             if st.app_wise_data:
@@ -45,13 +49,46 @@ def dashboard_view(request):
                 except:
                     pass
         
-        children_stats[c] = {
-            'total_screen_time': total_time,
-            'avg_screen_time': avg_time,
-            'app_breakdown': app_breakdown,
-            'location_count': c.location_history.count(),
-            'site_access_count': c.site_access_logs.count(),
-            'blocked_sites': c.site_access_logs.filter(accessed=False).count(),
+        # Get top 5 apps
+        sorted_apps = sorted(app_breakdown.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_apps = [{'name': app[0], 'time': app[1], 'hours': round(app[1]/3600, 1)} for app in sorted_apps]
+        
+        # Location data
+        locations = c.location_history.order_by('-timestamp')[:20]
+        location_count = c.location_history.count()
+        
+        # Site access logs
+        site_logs = c.site_access_logs.order_by('-timestamp')[:30]
+        site_count = c.site_access_logs.count()
+        blocked_count = c.site_access_logs.filter(accessed=False).count()
+        accessed_count = c.site_access_logs.filter(accessed=True).count()
+        
+        # Recent activity (last 7 days)
+        from datetime import datetime, timedelta
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        recent_screen_time = ScreenTime.objects.filter(child=c, date__gte=seven_days_ago)
+        recent_total = sum([st.total_screen_time for st in recent_screen_time])
+        recent_avg = recent_total / 7 if recent_screen_time.exists() else 0
+        
+        children_data[c] = {
+            'child': c,
+            'screen_time_list': screen_time_list,
+            'stats': {
+                'total_screen_time': total_time,
+                'total_screen_time_hours': f"{total_hours:.1f}h",
+                'avg_screen_time': avg_time,
+                'avg_screen_time_formatted': f"{avg_hours:.1f}h",
+                'recent_avg_formatted': f"{recent_avg/3600:.1f}h/day",
+                'location_count': location_count,
+                'site_access_count': site_count,
+                'blocked_sites': blocked_count,
+                'accessed_sites': accessed_count,
+                'block_rate': f"{(blocked_count/site_count*100):.0f}%" if site_count > 0 else "0%",
+            },
+            'top_apps': top_apps,
+            'locations': locations,
+            'site_logs': site_logs,
+            'has_data': st_qs.exists() or locations.exists() or site_logs.exists(),
         }
 
     if request.method == 'POST':
@@ -59,13 +96,12 @@ def dashboard_view(request):
         last_name = request.POST.get('last_name', '')
         date_of_birth = request.POST.get('date_of_birth') or None
         child = guardian.create_child(first_name=first_name, last_name=last_name, date_of_birth=date_of_birth)
-        messages.success(request, f'Child created with hash: {child.child_hash}')
+        messages.success(request, f'Child profile created successfully! ID: {child.child_hash}')
         return redirect('backend:dashboard')
 
     return render(request, 'dashboard/dashboard.html', {
         'children': children,
-        'children_screen_time': children_screen_time,
-        'children_stats': children_stats,
+        'children_data': children_data,
     })
 
 

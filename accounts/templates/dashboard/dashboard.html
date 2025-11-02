@@ -1,84 +1,206 @@
 {% extends 'base.html' %}
 {% load dashboard_filters %}
+
+{% block header_controls %}
+{% if children %}
+<div class="flex items-center gap-3">
+  {# Child Selector Dropdown #}
+  <div class="relative">
+    <select id="childSelector" 
+            class="appearance-none bg-black/40 border border-primary/30 text-textmain rounded px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer hover:border-primary text-sm">
+      <option value="">Select Child...</option>
+      {% for child in children %}
+        <option value="{{ child.child_hash }}">{{ child.get_full_name }}</option>
+      {% endfor %}
+    </select>
+    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+      <svg class="w-3 h-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </svg>
+    </div>
+  </div>
+  
+  {# Add Child Button #}
+  <button onclick="toggleAddChildModal()" 
+          class="btn-primary whitespace-nowrap">
+    Add Child
+  </button>
+</div>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 
 {# ============================================ #}
-{# PARTIAL: Stats Card Component #}
+{# PARTIAL: Empty State #}
+{# ============================================ #}
+{% partialdef empty_state %}
+<div class="glass-card text-center py-16 max-w-2xl mx-auto mt-8">
+  <h2 class="text-2xl font-semibold text-textmain mb-3">No Children Profiles Yet</h2>
+  <p class="text-sm text-textsec mb-8 max-w-md mx-auto">
+    Get started by creating your first child profile to begin monitoring and protecting their digital activities.
+  </p>
+  <button onclick="toggleAddChildModal()" class="btn-primary">
+    Create First Profile
+  </button>
+</div>
+{% endpartialdef empty_state %}
+
+{# ============================================ #}
+{# PARTIAL: Select Child Prompt #}
+{# ============================================ #}
+{% partialdef select_child_prompt %}
+<div class="glass-card text-center py-16 max-w-2xl mx-auto">
+  <h2 class="text-2xl font-semibold text-textmain mb-3">Select a Child</h2>
+  <p class="text-sm text-textsec max-w-md mx-auto">
+    Choose a child from the dropdown in the header to view their monitoring dashboard and activity details.
+  </p>
+</div>
+{% endpartialdef select_child_prompt %}
+
+{# ============================================ #}
+{# PARTIAL: Statistics Card #}
 {# ============================================ #}
 {% partialdef stat_card %}
-<div class="stat-card">
+<div class="stat-card group">
   <div class="flex items-center justify-between">
-    <div>
-      <p class="text-textsec text-sm uppercase tracking-wide">{{ label }}</p>
-      <p class="text-3xl font-bold text-primary mt-1">{{ value }}</p>
+    <div class="flex-1">
+      <p class="text-textsec text-xs uppercase tracking-wide font-medium mb-1">{{ label }}</p>
+      <p class="text-2xl font-semibold text-textmain">{{ value }}</p>
+      {% if subtitle %}
+        <p class="text-xs text-textsec mt-1">{{ subtitle }}</p>
+      {% endif %}
     </div>
-    <div class="text-4xl opacity-30">{{ icon }}</div>
   </div>
 </div>
 {% endpartialdef stat_card %}
 
 {# ============================================ #}
-{# PARTIAL: Child Header Component #}
+{# PARTIAL: Child Info Card #}
 {# ============================================ #}
-{% partialdef child_header %}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-  <div>
-    <h3 class="text-2xl font-bold text-primary">{{ child.get_full_name }}</h3>
-    <p class="text-sm text-textsec mt-1">
-      Child ID: <span class="font-mono text-secondary">{{ child.child_hash }}</span>
-    </p>
-  </div>
-  <div class="mt-4 sm:mt-0">
-    <span class="px-4 py-2 bg-secondary/20 text-secondary rounded-full text-sm font-semibold">
-      Active Monitoring
-    </span>
+{% partialdef child_info_card %}
+<div class="glass-card mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+        <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold text-textmain">{{ child.get_full_name }}</h2>
+        <p class="text-xs text-textsec mt-1">
+          ID: <span class="font-mono text-primary">{{ child.child_hash }}</span>
+        </p>
+        {% if child.date_of_birth %}
+          <p class="text-xs text-textsec mt-1">
+            Born: {{ child.date_of_birth|date:"M d, Y" }}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="mt-4 sm:mt-0">
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-400 rounded text-xs font-medium border border-green-500/20">
+        <span class="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+        Active
+      </span>
+    </div>
   </div>
 </div>
-{% endpartialdef child_header %}
+{% endpartialdef child_info_card %}
 
 {# ============================================ #}
-{# PARTIAL: Screen Time Chart Component #}
+{# PARTIAL: Screen Time Chart #}
 {# ============================================ #}
 {% partialdef screen_time_chart %}
-<div class="glass-card mb-6">
-  <h4 class="text-lg font-semibold text-accent mb-4">📊 Screen Time Trend (Last 30 Days)</h4>
-  <div class="chart-container">
+<div class="glass-card h-full">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-base font-semibold text-textmain">
+      Screen Time Trend
+    </h3>
+    <span class="text-xs text-textsec bg-black/30 px-2 py-1 rounded">Last 30 Days</span>
+  </div>
+  <div class="chart-container" style="height: 300px;">
     <canvas id="lineChart{{ child_hash }}"></canvas>
   </div>
 </div>
 {% endpartialdef screen_time_chart %}
 
 {# ============================================ #}
-{# PARTIAL: App Usage Pie Chart Component #}
+{# PARTIAL: App Usage Chart #}
 {# ============================================ #}
 {% partialdef app_usage_chart %}
-<div class="glass-card mb-6">
-  <h4 class="text-lg font-semibold text-accent mb-4">📱 Top Apps Usage</h4>
-  <div class="chart-container">
+<div class="glass-card h-full">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-base font-semibold text-textmain">
+      Top Apps Usage
+    </h3>
+    <span class="text-xs text-textsec bg-black/30 px-2 py-1 rounded">Total Time</span>
+  </div>
+  <div class="chart-container" style="height: 300px;">
     <canvas id="pieChart{{ child_hash }}"></canvas>
   </div>
 </div>
 {% endpartialdef app_usage_chart %}
 
 {# ============================================ #}
-{# PARTIAL: Location History Component #}
+{# PARTIAL: Top Apps List #}
+{# ============================================ #}
+{% partialdef top_apps_list %}
+<div class="glass-card mb-6">
+  <h3 class="text-base font-semibold text-textmain mb-4">
+    Most Used Applications
+  </h3>
+  {% if top_apps %}
+    <div class="space-y-3">
+      {% for app in top_apps %}
+        <div class="bg-black/30 rounded p-3 hover:bg-black/40 transition-colors border border-primary/10">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <p class="font-medium text-textmain text-sm">{{ app.name }}</p>
+              <div class="w-full bg-black/50 rounded-full h-1.5 mt-2">
+                {% widthratio app.time top_apps.0.time 100 as percentage %}
+                <div class="bg-primary h-1.5 rounded-full transition-all duration-500" 
+                     style="width: {{ percentage }}%"></div>
+              </div>
+            </div>
+            <div class="ml-4 text-right">
+              <p class="text-lg font-semibold text-primary">{{ app.hours }}h</p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-center text-textsec py-8 text-sm">No app usage data available</p>
+  {% endif %}
+</div>
+{% endpartialdef top_apps_list %}
+
+{# ============================================ #}
+{# PARTIAL: Location History #}
 {# ============================================ #}
 {% partialdef location_history %}
-<div class="glass-card mb-6">
-  <details>
-    <summary class="cursor-pointer text-accent font-semibold text-lg flex items-center gap-2 hover:text-primary transition-colors">
-      📍 Location History ({{ location_count }} entries)
+<div class="glass-card">
+  <details class="group">
+    <summary class="cursor-pointer text-textmain font-semibold text-base flex items-center justify-between hover:text-primary transition-colors">
+      <span>Location History</span>
+      <span class="bg-primary/10 text-primary px-2 py-1 rounded text-xs border border-primary/20">
+        {{ location_count }} entries
+      </span>
     </summary>
-    <div class="mt-4 space-y-3 max-h-96 overflow-y-auto">
+    <div class="mt-4 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
       {% for loc in locations %}
-        <div class="bg-black/30 rounded-lg p-4 border-l-4 border-primary">
-          <div class="flex flex-wrap gap-4 text-sm">
-            <span><span class="font-semibold text-primary">Time:</span> {{ loc.timestamp|date:"M d, Y H:i" }}</span>
-            <span><span class="font-semibold text-secondary">Coordinates:</span> {{ loc.latitude|floatformat:4 }}, {{ loc.longitude|floatformat:4 }}</span>
+        <div class="bg-black/30 rounded p-3 border-l-2 border-primary hover:bg-black/40 transition-colors">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div class="text-textmain">{{ loc.timestamp|date:"M d, Y H:i" }}</div>
+            <div class="text-textsec font-mono">
+              {{ loc.latitude|floatformat:4 }}, {{ loc.longitude|floatformat:4 }}
+            </div>
           </div>
         </div>
       {% empty %}
-        <p class="text-textsec text-center py-4">No location data available</p>
+        <p class="text-textsec text-center py-8 text-sm">No location data available</p>
       {% endfor %}
     </div>
   </details>
@@ -86,27 +208,32 @@
 {% endpartialdef location_history %}
 
 {# ============================================ #}
-{# PARTIAL: Site Access Log Component #}
+{# PARTIAL: Site Access Log #}
 {# ============================================ #}
 {% partialdef site_access_log %}
-<div class="glass-card mb-6">
-  <details>
-    <summary class="cursor-pointer text-accent font-semibold text-lg flex items-center gap-2 hover:text-primary transition-colors">
-      🌐 Site Access Log ({{ site_count }} entries)
+<div class="glass-card">
+  <details class="group">
+    <summary class="cursor-pointer text-textmain font-semibold text-base flex items-center justify-between hover:text-primary transition-colors">
+      <span>Site Access Log</span>
+      <span class="bg-primary/10 text-primary px-2 py-1 rounded text-xs border border-primary/20">
+        {{ site_count }} entries
+      </span>
     </summary>
-    <div class="mt-4 space-y-3 max-h-96 overflow-y-auto">
+    <div class="mt-4 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
       {% for log in site_logs %}
-        <div class="bg-black/30 rounded-lg p-4 border-l-4 {% if log.accessed %}border-green-500{% else %}border-red-500{% endif %}">
-          <div class="flex flex-col gap-2 text-sm">
-            <span><span class="font-semibold text-primary">Time:</span> {{ log.timestamp|date:"M d, Y H:i" }}</span>
-            <span class="break-all"><span class="font-semibold text-secondary">URL:</span> {{ log.url }}</span>
-            <span class="font-semibold {% if log.accessed %}text-green-400{% else %}text-red-400{% endif %}">
-              {{ log.accessed|yesno:"✓ Accessed,✗ Blocked" }}
-            </span>
+        <div class="bg-black/30 rounded p-3 border-l-2 {% if log.accessed %}border-green-500{% else %}border-red-500{% endif %} hover:bg-black/40 transition-colors">
+          <div class="flex flex-col gap-2 text-xs">
+            <div class="flex items-start justify-between gap-4">
+              <span class="text-textmain">{{ log.timestamp|date:"M d, Y H:i" }}</span>
+              <span class="font-medium text-xs px-2 py-0.5 rounded {% if log.accessed %}bg-green-500/10 text-green-400 border border-green-500/20{% else %}bg-red-500/10 text-red-400 border border-red-500/20{% endif %}">
+                {% if log.accessed %}Accessed{% else %}Blocked{% endif %}
+              </span>
+            </div>
+            <div class="break-all bg-black/40 p-2 rounded text-textsec">{{ log.url }}</div>
           </div>
         </div>
       {% empty %}
-        <p class="text-textsec text-center py-4">No site access data available</p>
+        <p class="text-textsec text-center py-8 text-sm">No site access data available</p>
       {% endfor %}
     </div>
   </details>
@@ -114,30 +241,36 @@
 {% endpartialdef site_access_log %}
 
 {# ============================================ #}
-{# PARTIAL: Screen Time Details Component #}
+{# PARTIAL: Screen Time Details #}
 {# ============================================ #}
 {% partialdef screen_time_details %}
-<div class="glass-card mb-6">
-  <details>
-    <summary class="cursor-pointer text-accent font-semibold text-lg flex items-center gap-2 hover:text-primary transition-colors">
-      ⏱️ Detailed Screen Time Records
+<div class="glass-card">
+  <details class="group">
+    <summary class="cursor-pointer text-textmain font-semibold text-base flex items-center justify-between hover:text-primary transition-colors">
+      <span>Detailed Screen Time Records</span>
+      <span class="bg-primary/10 text-primary px-2 py-1 rounded text-xs border border-primary/20">
+        {{ screen_time_list|length }} days
+      </span>
     </summary>
-    <div class="mt-4 space-y-3 max-h-96 overflow-y-auto">
+    <div class="mt-4 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
       {% for st in screen_time_list %}
-        <div class="bg-black/30 rounded-lg p-4">
-          <div class="flex flex-wrap gap-4 mb-3">
-            <span><span class="font-semibold text-primary">Date:</span> {{ st.date|date:"M d, Y" }}</span>
-            <span><span class="font-semibold text-secondary">Total Time:</span> {{ st.total_screen_time|floatformat:0 }}s ({{ st.total_screen_time|div:3600|floatformat:1 }}h)</span>
+        <div class="bg-black/30 rounded p-3 hover:bg-black/40 transition-colors">
+          <div class="flex flex-wrap gap-3 mb-2 text-xs">
+            <div class="text-textmain">{{ st.date|date:"M d, Y" }}</div>
+            <div class="text-textsec">
+              {{ st.total_screen_time|floatformat:0 }}s 
+              <span class="text-primary">({{ st.total_screen_time|div:3600|floatformat:1 }}h)</span>
+            </div>
           </div>
           {% if st.app_wise_data %}
             <div class="mt-2">
-              <span class="font-semibold text-accent">App Breakdown:</span>
-              <pre class="bg-black/40 rounded p-3 mt-2 text-xs overflow-x-auto text-textmain">{{ st.app_wise_data|safe }}</pre>
+              <div class="text-textsec text-xs mb-1">App Breakdown</div>
+              <pre class="bg-black/50 rounded p-2 text-xs overflow-x-auto text-textmain border border-primary/10">{{ st.app_wise_data|safe }}</pre>
             </div>
           {% endif %}
         </div>
       {% empty %}
-        <p class="text-textsec text-center py-4">No screen time data available</p>
+        <p class="text-textsec text-center py-8 text-sm">No screen time data available</p>
       {% endfor %}
     </div>
   </details>
@@ -145,74 +278,124 @@
 {% endpartialdef screen_time_details %}
 
 {# ============================================ #}
-{# PARTIAL: Create Child Form Component #}
+{# PARTIAL: No Data Message #}
 {# ============================================ #}
-{% partialdef create_child_form %}
-<div class="glass-card">
-  <h3 class="section-header">➕ Add New Child</h3>
-  <form method="post" class="space-y-4">
-    {% csrf_token %}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <label class="flex-1">
-        <span class="block text-textsec mb-2 font-medium">First Name</span>
-        <input type="text" name="first_name" 
-               class="w-full rounded-lg bg-black/30 border-2 border-primary/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all" 
-               placeholder="Enter first name"
-               required>
-      </label>
-      <label class="flex-1">
-        <span class="block text-textsec mb-2 font-medium">Last Name</span>
-        <input type="text" name="last_name" 
-               class="w-full rounded-lg bg-black/30 border-2 border-primary/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all" 
-               placeholder="Enter last name"
-               required>
-      </label>
-      <label class="flex-1">
-        <span class="block text-textsec mb-2 font-medium">Date of Birth</span>
-        <input type="date" name="date_of_birth" 
-               class="w-full rounded-lg bg-black/30 border-2 border-primary/50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all" 
-               required>
-      </label>
-    </div>
-    <button type="submit" class="btn-primary w-full sm:w-auto mt-4">
-      Create Child Profile
-    </button>
-  </form>
+{% partialdef no_data_message %}
+<div class="glass-card text-center py-12">
+  <h3 class="text-lg font-semibold text-textmain mb-2">No Data Available Yet</h3>
+  <p class="text-sm text-textsec">
+    Data from the monitoring app will appear here once the child's device starts sending information.
+  </p>
 </div>
-{% endpartialdef create_child_form %}
+{% endpartialdef no_data_message %}
+
+{# ============================================ #}
+{# PARTIAL: Add Child Modal #}
+{# ============================================ #}
+{% partialdef add_child_modal %}
+<div id="addChildModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="glass-card max-w-2xl w-full animate-scale-in">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-xl font-semibold text-textmain">
+        Add New Child Profile
+      </h3>
+      <button onclick="toggleAddChildModal()" 
+              class="text-textsec hover:text-primary transition-colors text-2xl leading-none">
+        ×
+      </button>
+    </div>
+    
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-textsec mb-2 text-sm font-medium">
+            First Name
+          </label>
+          <input type="text" name="first_name" 
+                 class="w-full rounded bg-black/30 border border-primary/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all text-sm" 
+                 placeholder="Enter first name"
+                 required>
+        </div>
+        
+        <div>
+          <label class="block text-textsec mb-2 text-sm font-medium">
+            Last Name
+          </label>
+          <input type="text" name="last_name" 
+                 class="w-full rounded bg-black/30 border border-primary/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all text-sm" 
+                 placeholder="Enter last name"
+                 required>
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-textsec mb-2 text-sm font-medium">
+          Date of Birth
+        </label>
+        <input type="date" name="date_of_birth" 
+               class="w-full rounded bg-black/30 border border-primary/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-textmain transition-all text-sm" 
+               required>
+      </div>
+      
+      <div class="flex gap-3 pt-4">
+        <button type="submit" class="btn-primary flex-1">
+          Create Profile
+        </button>
+        <button type="button" onclick="toggleAddChildModal()" 
+                class="px-4 py-2 rounded border border-textsec/30 text-textsec hover:border-primary hover:text-primary transition-all text-sm">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endpartialdef add_child_modal %}
 
 {# ============================================ #}
 {# MAIN DASHBOARD CONTENT #}
 {# ============================================ #}
 
-<div class="mb-8">
-  <h2 class="section-header text-3xl mb-8">👨‍👩‍👧‍👦 Your Children Dashboard</h2>
-  
-  {% if children %}
-    {% for child in children %}
-      <div class="glass-card mb-8 p-6">
-        {# Render child header - partials automatically inherit context #}
-        {% partial child_header %}
-        
-        {# Statistics Overview #}
-        {% with stats=children_stats|get_item:child %}
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {# Set context variables before calling partial #}
-            {% with label="Total Screen Time" value=stats.total_screen_time_hours icon="⏰" %}
-              {% partial stat_card %}
-            {% endwith %}
-            {% with label="Avg Daily Time" value=stats.avg_screen_time_formatted icon="📊" %}
-              {% partial stat_card %}
-            {% endwith %}
-            {% with label="Locations Tracked" value=stats.location_count icon="📍" %}
-              {% partial stat_card %}
-            {% endwith %}
-            {% with label="Sites Blocked" value=stats.blocked_sites icon="🚫" %}
-              {% partial stat_card %}
-            {% endwith %}
-          </div>
-        {% endwith %}
+{# Render Add Child Modal #}
+{% partial add_child_modal %}
 
+{# If no children exist, show empty state #}
+{% if not children %}
+  {% partial empty_state %}
+{% else %}
+  {# Initial prompt to select a child #}
+  <div id="selectPrompt">
+    {% partial select_child_prompt %}
+  </div>
+  
+  {# Child-specific content containers (hidden by default) #}
+  {% for child, data in children_data.items %}
+    <div id="child-{{ child.child_hash }}" class="child-dashboard hidden">
+      
+      {# Child Info Card #}
+      {% with child=child %}
+        {% partial child_info_card %}
+      {% endwith %}
+      
+      {# Check if child has any data #}
+      {% if data.has_data %}
+        
+        {# Statistics Grid #}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {% with label="Total Screen Time" value=data.stats.total_screen_time_hours subtitle="All-time usage" %}
+            {% partial stat_card %}
+          {% endwith %}
+          {% with label="Average Daily" value=data.stats.avg_screen_time_formatted subtitle="Per day average" %}
+            {% partial stat_card %}
+          {% endwith %}
+          {% with label="Locations Tracked" value=data.stats.location_count subtitle="Total GPS points" %}
+            {% partial stat_card %}
+          {% endwith %}
+          {% with label="Block Rate" value=data.stats.block_rate subtitle=data.stats.blocked_sites|stringformat:"d"|add:" blocked" %}
+            {% partial stat_card %}
+          {% endwith %}
+        </div>
+        
         {# Charts Section #}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {% with child_hash=child.child_hash %}
@@ -222,140 +405,255 @@
             {% partial app_usage_chart %}
           {% endwith %}
         </div>
-
-        {# Detailed Information #}
-        {% with locations=child.location_history.all location_count=child.location_history.count %}
-          {% partial location_history %}
+        
+        {# Top Apps List #}
+        {% with top_apps=data.top_apps %}
+          {% partial top_apps_list %}
         {% endwith %}
         
-        {% with site_logs=child.site_access_logs.all site_count=child.site_access_logs.count %}
-          {% partial site_access_log %}
-        {% endwith %}
+        {# Detailed Data Sections #}
+        <div class="mt-6 space-y-6">
+          {% with locations=data.locations location_count=data.stats.location_count %}
+            {% partial location_history %}
+          {% endwith %}
+          
+          {% with site_logs=data.site_logs site_count=data.stats.site_access_count %}
+            {% partial site_access_log %}
+          {% endwith %}
+          
+          {% with screen_time_list=data.screen_time_list %}
+            {% partial screen_time_details %}
+          {% endwith %}
+        </div>
         
-        {% with screen_time_list=children_screen_time|get_item:child %}
-          {% partial screen_time_details %}
-        {% endwith %}
-      </div>
-
-      {# Chart.js initialization script for each child #}
-      <script>
-        // Fetch and render charts for {{ child.get_full_name }}
-        fetch('/dashboard/chart-data/{{ child.child_hash }}/')
-          .then(response => response.json())
-          .then(data => {
-            // Line Chart - Screen Time Trend
-            const lineCtx = document.getElementById('lineChart{{ child.child_hash }}').getContext('2d');
-            new Chart(lineCtx, {
-              type: 'line',
-              data: {
-                labels: data.line_chart.labels,
-                datasets: [{
-                  label: 'Screen Time (hours)',
-                  data: data.line_chart.data,
-                  borderColor: '#00E5FF',
-                  backgroundColor: 'rgba(0, 229, 255, 0.1)',
-                  borderWidth: 3,
-                  fill: true,
-                  tension: 0.4,
-                  pointBackgroundColor: '#00E5FF',
-                  pointBorderColor: '#fff',
-                  pointBorderWidth: 2,
-                  pointRadius: 4,
-                  pointHoverRadius: 6,
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    labels: { color: '#E0E0E0', font: { size: 12 } }
-                  },
-                  tooltip: {
-                    backgroundColor: 'rgba(30, 30, 46, 0.9)',
-                    titleColor: '#00E5FF',
-                    bodyColor: '#E0E0E0',
-                    borderColor: '#00E5FF',
-                    borderWidth: 1,
-                  }
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    ticks: { color: '#A0A0A0' },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                  },
-                  x: {
-                    ticks: { color: '#A0A0A0' },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                  }
-                }
-              }
-            });
-
-            // Pie Chart - App Usage
-            const pieCtx = document.getElementById('pieChart{{ child.child_hash }}').getContext('2d');
-            new Chart(pieCtx, {
-              type: 'doughnut',
-              data: {
-                labels: data.pie_chart.labels,
-                datasets: [{
-                  data: data.pie_chart.data,
-                  backgroundColor: [
-                    '#00E5FF',
-                    '#8E2DE2',
-                    '#FF00C8',
-                    '#FFD700',
-                    '#FF6B6B',
-                  ],
-                  borderColor: '#1E1E2E',
-                  borderWidth: 2,
-                  hoverOffset: 8,
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'bottom',
-                    labels: { 
-                      color: '#E0E0E0',
-                      font: { size: 11 },
-                      padding: 15,
-                    }
-                  },
-                  tooltip: {
-                    backgroundColor: 'rgba(30, 30, 46, 0.9)',
-                    titleColor: '#00E5FF',
-                    bodyColor: '#E0E0E0',
-                    borderColor: '#00E5FF',
-                    borderWidth: 1,
-                    callbacks: {
-                      label: function(context) {
-                        return context.label + ': ' + context.parsed.toFixed(1) + 'h';
-                      }
-                    }
-                  }
-                }
-              }
-            });
-          })
-          .catch(error => console.error('Error loading chart data:', error));
-      </script>
-    {% endfor %}
-  {% else %}
-    <div class="glass-card text-center py-12">
-      <div class="text-6xl mb-4">👶</div>
-      <p class="text-xl text-textsec mb-2">No children profiles yet</p>
-      <p class="text-sm text-textsec">Create your first child profile below to start monitoring</p>
+      {% else %}
+        {# No data available for this child #}
+        {% partial no_data_message %}
+      {% endif %}
+      
     </div>
-  {% endif %}
-</div>
+  {% endfor %}
+{% endif %}
 
-{# Create Child Form #}
-<div class="mt-10">
-  {% partial create_child_form %}
-</div>
+{# ============================================ #}
+{# JAVASCRIPT #}
+{# ============================================ #}
+<script>
+// Toggle Add Child Modal
+function toggleAddChildModal() {
+  const modal = document.getElementById('addChildModal');
+  modal.classList.toggle('hidden');
+}
+
+// Close modal on outside click
+document.getElementById('addChildModal')?.addEventListener('click', function(e) {
+  if (e.target === this) {
+    toggleAddChildModal();
+  }
+});
+
+// Child Selector Logic
+const childSelector = document.getElementById('childSelector');
+if (childSelector) {
+  childSelector.addEventListener('change', function() {
+    const selectedHash = this.value;
+    
+    // Hide all child dashboards
+    document.querySelectorAll('.child-dashboard').forEach(dash => {
+      dash.classList.add('hidden');
+    });
+    
+    // Show/hide select prompt
+    const selectPrompt = document.getElementById('selectPrompt');
+    if (selectedHash) {
+      if (selectPrompt) selectPrompt.classList.add('hidden');
+      
+      // Show selected child dashboard
+      const selectedDash = document.getElementById('child-' + selectedHash);
+      if (selectedDash) {
+        selectedDash.classList.remove('hidden');
+        
+        // Load charts for this child
+        loadChartsForChild(selectedHash);
+      }
+    } else {
+      if (selectPrompt) selectPrompt.classList.remove('hidden');
+    }
+  });
+}
+
+// Load Charts Function
+function loadChartsForChild(childHash) {
+  // Check if charts already exist
+  const lineCanvas = document.getElementById('lineChart' + childHash);
+  const pieCanvas = document.getElementById('pieChart' + childHash);
+  
+  if (!lineCanvas || !pieCanvas) return;
+  
+  // Fetch chart data
+  fetch('/dashboard/chart-data/' + childHash + '/')
+    .then(response => response.json())
+    .then(data => {
+      // Destroy existing charts if any
+      if (window.chartsInstances && window.chartsInstances[childHash]) {
+        window.chartsInstances[childHash].line?.destroy();
+        window.chartsInstances[childHash].pie?.destroy();
+      }
+      
+      // Initialize charts storage
+      if (!window.chartsInstances) window.chartsInstances = {};
+      if (!window.chartsInstances[childHash]) window.chartsInstances[childHash] = {};
+      
+      // Line Chart - Screen Time Trend
+      const lineCtx = lineCanvas.getContext('2d');
+      window.chartsInstances[childHash].line = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels: data.line_chart.labels,
+          datasets: [{
+            label: 'Screen Time (hours)',
+            data: data.line_chart.data,
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#3B82F6',
+            pointBorderColor: '#F1F5F9',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { 
+                color: '#F1F5F9', 
+                font: { size: 12, weight: '500' },
+                padding: 12
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#3B82F6',
+              bodyColor: '#F1F5F9',
+              borderColor: '#3B82F6',
+              borderWidth: 1,
+              padding: 10,
+              titleFont: { size: 13, weight: '600' },
+              bodyFont: { size: 12 },
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#94A3B8', font: { size: 11 } },
+              grid: { color: 'rgba(148, 163, 184, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#94A3B8', font: { size: 11 } },
+              grid: { color: 'rgba(148, 163, 184, 0.1)' }
+            }
+          }
+        }
+      });
+
+      // Pie Chart - App Usage
+      const pieCtx = pieCanvas.getContext('2d');
+      window.chartsInstances[childHash].pie = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+          labels: data.pie_chart.labels,
+          datasets: [{
+            data: data.pie_chart.data,
+            backgroundColor: [
+              '#3B82F6',
+              '#1E40AF',
+              '#60A5FA',
+              '#2563EB',
+              '#6366F1',
+              '#4F46E5',
+              '#8B5CF6',
+            ],
+            borderColor: '#0F172A',
+            borderWidth: 2,
+            hoverOffset: 8,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { 
+                color: '#F1F5F9',
+                font: { size: 11, weight: '500' },
+                padding: 10,
+                boxWidth: 12,
+                boxHeight: 12,
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#3B82F6',
+              bodyColor: '#F1F5F9',
+              borderColor: '#3B82F6',
+              borderWidth: 1,
+              padding: 10,
+              callbacks: {
+                label: function(context) {
+                  return context.label + ': ' + context.parsed.toFixed(1) + 'h';
+                }
+              }
+            }
+          }
+        }
+      });
+    })
+    .catch(error => console.error('Error loading chart data:', error));
+}
+
+// Add smooth scroll behavior
+document.documentElement.style.scrollBehavior = 'smooth';
+</script>
+
+<style>
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3B82F6;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #2563EB;
+}
+</style>
 
 {% endblock %}

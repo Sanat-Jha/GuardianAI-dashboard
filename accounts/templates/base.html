@@ -15,75 +15,79 @@
       theme: {
         extend: {
           colors: {
-            primary: '#00E5FF',
-            secondary: '#8E2DE2',
-            accent: '#FF00C8',
-            darkbg1: '#1E1E2E',
-            darkbg2: '#2B2C3E',
-            cardglass: 'rgba(255,255,255,0.05)',
-            textmain: '#E0E0E0',
-            textsec: '#A0A0A0',
+            primary: '#3B82F6',
+            secondary: '#1E40AF',
+            accent: '#60A5FA',
+            darkbg1: '#0F172A',
+            darkbg2: '#1E293B',
+            cardglass: 'rgba(30, 41, 59, 0.6)',
+            textmain: '#F1F5F9',
+            textsec: '#94A3B8',
           },
           fontFamily: {
-            poppins: ['Poppins', 'Inter', 'sans-serif'],
+            poppins: ['Inter', 'system-ui', 'sans-serif'],
           },
         },
       },
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      background: linear-gradient(135deg, #1E1E2E 0%, #2B2C3E 100%);
+      background: #0F172A;
       min-height: 100vh;
-      font-family: 'Poppins', 'Inter', sans-serif;
-      color: #E0E0E0;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #F1F5F9;
       position: relative;
     }
     .glass-card {
-      background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 32px 0 rgba(0,0,0,0.10);
-      border-radius: 1.25rem;
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+      border-radius: 0.5rem;
       padding: 1.5rem;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(148, 163, 184, 0.1);
     }
     .stat-card {
-      background: linear-gradient(135deg, rgba(0,229,255,0.1) 0%, rgba(142,45,226,0.1) 100%);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(0,229,255,0.2);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      transition: transform 0.3s, box-shadow 0.3s;
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      transition: all 0.2s ease;
     }
     .stat-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,229,255,0.2);
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(59, 130, 246, 0.4);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
     }
     .btn-primary {
-      background: #00E5FF;
-      color: #1E1E2E;
-      border-radius: 0.75rem;
-      padding: 0.75rem 2rem;
+      background: #3B82F6;
+      color: #F1F5F9;
+      border-radius: 0.375rem;
+      padding: 0.625rem 1.5rem;
       font-weight: 600;
-      transition: all 0.15s;
-      box-shadow: 0 4px 12px rgba(0,229,255,0.3);
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      border: 1px solid rgba(59, 130, 246, 0.5);
     }
     .btn-primary:hover {
-      background: #8E2DE2;
-      color: #fff;
-      transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 6px 16px rgba(142,45,226,0.4);
+      background: #2563EB;
+      border-color: #2563EB;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
     }
     .site-header {
-      background: rgba(30,30,46,0.95);
-      backdrop-filter: blur(6px);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
     .site-footer {
-      background: rgba(30,30,46,0.95);
-      backdrop-filter: blur(6px);
-      border-top: 1px solid rgba(255,255,255,0.05);
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
       position: fixed;
       left: 0;
       bottom: 0;
@@ -91,30 +95,31 @@
       z-index: 10;
     }
     .main-nav a {
-      color: #00E5FF;
+      color: #94A3B8;
       font-weight: 500;
-      margin-left: 1.5rem;
+      font-size: 0.875rem;
       transition: color 0.2s;
     }
     .main-nav a:hover {
-      color: #8E2DE2;
+      color: #3B82F6;
     }
     .brand {
-      font-size: 2rem;
+      font-size: 1.25rem;
       font-weight: 700;
-      letter-spacing: 0.1em;
-      color: #00E5FF;
+      letter-spacing: -0.025em;
+      color: #F1F5F9;
     }
     .messages {
       margin-bottom: 1.5rem;
     }
     .message {
-      background: rgba(0,229,255,0.1);
-      border-left: 4px solid #00E5FF;
-      padding: 0.75rem 1.25rem;
-      border-radius: 0.5rem;
+      background: rgba(59, 130, 246, 0.1);
+      border-left: 3px solid #3B82F6;
+      padding: 0.75rem 1rem;
+      border-radius: 0.375rem;
       margin-bottom: 0.5rem;
-      color: #E0E0E0;
+      color: #F1F5F9;
+      font-size: 0.875rem;
     }
     .chart-container {
       position: relative;
@@ -122,46 +127,51 @@
       margin: 1rem 0;
     }
     .section-header {
-      background: linear-gradient(90deg, #00E5FF 0%, #8E2DE2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-size: 1.5rem;
-      font-weight: 700;
+      color: #F1F5F9;
+      font-size: 1.125rem;
+      font-weight: 600;
       margin-bottom: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: -0.025em;
     }
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
       .container {
         padding: 0 1rem;
-      }
-      .main-nav a {
-        margin-left: 0.75rem;
       }
       .chart-container {
         height: 250px;
       }
+      .brand {
+        font-size: 1.125rem;
+      }
     }
   </style>
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <header class="site-header w-full py-4 shadow-lg">
-    <div class="container mx-auto flex justify-between items-center px-4">
-      <h1 class="brand">Guardian AI</h1>
-      <nav class="main-nav flex items-center space-x-6">
-        {% if user.is_authenticated %}
-          <a href="{% url 'backend:dashboard' %}">Dashboard</a>
-          <a href="{% url 'accounts:logout' %}">Logout</a>
-        {% else %}
-          <a href="{% url 'accounts:login' %}">Login</a>
-          <a href="{% url 'accounts:signup' %}">Sign up</a>
-        {% endif %}
-      </nav>
+  <header class="site-header w-full py-3 shadow-lg">
+    <div class="container mx-auto px-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="brand">Guardian AI</h1>
+        
+        <div class="flex items-center gap-3 flex-wrap">
+          {% block header_controls %}
+          {% endblock %}
+          
+          <nav class="main-nav flex items-center gap-4">
+            {% if user.is_authenticated %}
+              <a href="{% url 'backend:dashboard' %}" class="hover:text-secondary transition-colors">Dashboard</a>
+              <a href="{% url 'accounts:logout' %}" class="hover:text-secondary transition-colors">Logout</a>
+            {% else %}
+              <a href="{% url 'accounts:login' %}" class="hover:text-secondary transition-colors">Login</a>
+              <a href="{% url 'accounts:signup' %}" class="hover:text-secondary transition-colors">Sign up</a>
+            {% endif %}
+          </nav>
+        </div>
+      </div>
     </div>
   </header>
 
-  <main class="container mx-auto max-w-7xl py-8 px-4 pb-32">
+  <main class="container mx-auto max-w-7xl py-6 px-4 pb-24">
     {% if messages %}
       <ul class="messages">
         {% for message in messages %}
