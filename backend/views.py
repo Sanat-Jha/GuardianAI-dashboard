@@ -217,19 +217,42 @@ def api_ingest(request):
 
     Expects POST JSON with this schema:
     {
+        "child_hash": "abc123",            # single child identifier for entire payload
         "screen_time_info": { ... },
         "location_info": { ... },
-        "site_access_info": { ... },
+        "site_access_info": { "logs": [...] },
         // other data can be present
     }
     """
     if request.method != 'POST':
+        print("api_ingest: non-POST request received")
         return JsonResponse({'error': 'POST required'}, status=405)
 
+    # Log request meta and raw body
     try:
-        payload = json.loads(request.body.decode('utf-8'))
+        raw_body = request.body.decode('utf-8')
     except Exception:
+        raw_body = repr(request.body)
+    print(f"api_ingest called. Method={request.method}, Path={getattr(request, 'path', '')}")
+    print(f"Client: {request.META.get('REMOTE_ADDR')} User-Agent: {request.META.get('HTTP_USER_AGENT')}")
+    print(f"Raw request body: {raw_body}")
+
+    try:
+        payload = json.loads(raw_body)
+        try:
+            # Pretty-print payload for easier reading in logs
+            print("Parsed JSON payload:", json.dumps(payload, indent=2))
+        except Exception:
+            print("Parsed JSON payload (repr):", repr(payload))
+    except Exception as e:
+        print(f"api_ingest: Failed to parse JSON: {e}")
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    # Require a top-level child_hash for the entire payload
+    child_hash = payload.get('child_hash')
+    if not child_hash:
+        print("api_ingest: missing top-level child_hash")
+        return JsonResponse({'error': 'child_hash required at top level'}, status=400)
 
     from backend.models import ScreenTime, LocationHistory, SiteAccessLog
 
@@ -237,36 +260,91 @@ def api_ingest(request):
     screen_time_info = payload.get('screen_time_info')
     screen_time_result = None
     if screen_time_info:
+        print(f"Received screen_time_info for child_hash={child_hash}: {screen_time_info}")
         try:
-            obj, created = ScreenTime.store_from_dict(screen_time_info)
-            screen_time_result = {'status': 'ok', 'created': created}
+            # Ensure child_hash is present in the dict passed to the model helper
+            if isinstance(screen_time_info, dict):
+                if 'child_hash' not in screen_time_info:
+                    screen_time_info['child_hash'] = child_hash
+            try:
+                obj, created = ScreenTime.store_from_dict(screen_time_info)
+                screen_time_result = {'status': 'ok', 'created': created}
+                try:
+                    print(f"ScreenTime stored: id={getattr(obj, 'id', None)} created={created}")
+                except Exception:
+                    print("ScreenTime stored (object repr):", repr(obj))
+            except TypeError:
+                # If the helper signature differs, try passing child_hash explicitly
+                obj, created = ScreenTime.store_from_dict(child_hash, screen_time_info)
+                screen_time_result = {'status': 'ok', 'created': created}
+                print(f"ScreenTime stored using alternate signature: id={getattr(obj, 'id', None)} created={created}")
         except ValueError as e:
+            print(f"Error storing screen time: {e}")
+            screen_time_result = {'error': str(e)}
+        except Exception as e:
+            import traceback
+            print("Unexpected error storing screen time:", str(e))
+            print(traceback.format_exc())
             screen_time_result = {'error': str(e)}
 
     # Extract and store location info if present
     location_info = payload.get('location_info')
     location_result = None
     if location_info:
+        print(f"Received location_info for child_hash={child_hash}: {location_info}")
         try:
-            obj = LocationHistory.store_from_dict(location_info)
-            location_result = {'status': 'ok'}
+            if isinstance(location_info, dict) and 'child_hash' not in location_info:
+                location_info['child_hash'] = child_hash
+            try:
+                obj = LocationHistory.store_from_dict(location_info)
+                location_result = {'status': 'ok'}
+                try:
+                    print(f"LocationHistory stored: id={getattr(obj, 'id', None)}")
+                except Exception:
+                    print("LocationHistory stored (object repr):", repr(obj))
+            except TypeError:
+                # Alternate signature: (child_hash, data)
+                obj = LocationHistory.store_from_dict(child_hash, location_info)
+                location_result = {'status': 'ok'}
+                print(f"LocationHistory stored using alternate signature: id={getattr(obj, 'id', None)}")
         except ValueError as e:
+            print(f"Error storing location info: {e}")
+            location_result = {'error': str(e)}
+        except Exception as e:
+            import traceback
+            print("Unexpected error storing location info:", str(e))
+            print(traceback.format_exc())
             location_result = {'error': str(e)}
 
     # Extract and store site access info if present
     site_access_info = payload.get('site_access_info')
     site_access_result = None
     if site_access_info:
-        # Expecting: {"child_hash": ..., "logs": [ {timestamp, url, accessed}, ... ]}
-        child_hash = site_access_info.get('child_hash')
-        logs = site_access_info.get('logs')
+        print(f"Received site_access_info for child_hash={child_hash}: {site_access_info}")
+        # Expecting: {"logs": [ {timestamp, url, accessed}, ... ]}
+        logs = None
+        if isinstance(site_access_info, dict):
+            logs = site_access_info.get('logs')
+        else:
+            # If site_access_info is directly a list of logs
+            if isinstance(site_access_info, list):
+                logs = site_access_info
+        print(f"site_access_info child_hash={child_hash} logs_count={len(logs) if isinstance(logs, list) else 'N/A'}")
         try:
             objs = SiteAccessLog.store_from_list(child_hash, logs)
             site_access_result = {'status': 'ok', 'count': len(objs)}
+            print(f"Stored {len(objs)} SiteAccessLog entries for child_hash={child_hash}")
         except ValueError as e:
+            print(f"Error storing site access logs: {e}")
+            site_access_result = {'error': str(e)}
+        except Exception as e:
+            import traceback
+            print("Unexpected error storing site access logs:", str(e))
+            print(traceback.format_exc())
             site_access_result = {'error': str(e)}
 
     return JsonResponse({
+        'child_hash': child_hash,
         'screen_time': screen_time_result or 'not provided',
         'location': location_result or 'not provided',
         'site_access': site_access_result or 'not provided',
