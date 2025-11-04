@@ -12,34 +12,53 @@ document.getElementById('addChildModal')?.addEventListener('click', function(e) 
   }
 });
 
-// Child Selector Logic
-const childSelector = document.getElementById('childSelector');
-if (childSelector) {
-  childSelector.addEventListener('change', function() {
-    const selectedHash = this.value;
-    
-    // Hide all child dashboards
-    document.querySelectorAll('.child-dashboard').forEach(dash => {
-      dash.classList.add('hidden');
-    });
-    
-    // Show/hide select prompt
-    const selectPrompt = document.getElementById('selectPrompt');
-    if (selectedHash) {
-      if (selectPrompt) selectPrompt.classList.add('hidden');
-      
-      // Show selected child dashboard
-      const selectedDash = document.getElementById('child-' + selectedHash);
-      if (selectedDash) {
-        selectedDash.classList.remove('hidden');
-        
-        // Load charts for this child
-        loadChartsForChild(selectedHash);
-      }
-    } else {
-      if (selectPrompt) selectPrompt.classList.remove('hidden');
+// Child Selection Logic for Sidebar
+window.selectChild = function(childHash) {
+  console.log('Selecting child:', childHash);
+  
+  // Update active state in sidebar
+  document.querySelectorAll('.child-item').forEach(item => {
+    item.classList.remove('active-child');
+    const indicator = item.querySelector('.child-indicator');
+    if (indicator) {
+      indicator.style.opacity = '0';
     }
   });
+  
+  // Set active state for selected child
+  const selectedItem = document.querySelector(`[data-child-hash="${childHash}"]`);
+  if (selectedItem) {
+    selectedItem.classList.add('active-child');
+    const indicator = selectedItem.querySelector('.child-indicator');
+    if (indicator) {
+      indicator.style.opacity = '1';
+    }
+  }
+  
+  // Hide all child dashboards
+  document.querySelectorAll('.child-dashboard').forEach(dash => {
+    dash.classList.add('hidden');
+  });
+  
+  // Show/hide select prompt
+  const selectPrompt = document.getElementById('selectPrompt');
+  if (childHash) {
+    if (selectPrompt) selectPrompt.classList.add('hidden');
+    
+    // Show selected child dashboard
+    const selectedDash = document.getElementById('child-' + childHash);
+    if (selectedDash) {
+      selectedDash.classList.remove('hidden');
+      console.log('Showing dashboard for child:', childHash);
+      
+      // Load charts for this child
+      loadChartsForChild(childHash);
+    } else {
+      console.error('Dashboard not found for child:', childHash);
+    }
+  } else {
+    if (selectPrompt) selectPrompt.classList.remove('hidden');
+  }
 }
 
 // Load Charts Function
@@ -362,6 +381,50 @@ function loadChartsForChild(childHash) {
       }
     });
 }
+
+// Mobile Sidebar Functions
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.mobile-sidebar-overlay');
+  
+  if (sidebar && overlay) {
+    sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('active');
+  }
+}
+
+function closeMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.querySelector('.mobile-sidebar-overlay');
+  
+  if (sidebar && overlay) {
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('active');
+  }
+}
+
+// Enhanced selectChild function with mobile support
+const originalSelectChild = window.selectChild;
+window.selectChild = function(childHash) {
+  originalSelectChild(childHash);
+  closeMobileSidebar();
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Dashboard scripts initialized');
+  
+  // Test if selectChild function is available
+  if (typeof window.selectChild === 'function') {
+    console.log('selectChild function is available');
+  } else {
+    console.error('selectChild function is not available');
+  }
+  
+  // Check if child items exist
+  const childItems = document.querySelectorAll('.child-item');
+  console.log('Found', childItems.length, 'child items');
+});
 
 // Add smooth scroll behavior
 document.documentElement.style.scrollBehavior = 'smooth';

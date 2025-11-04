@@ -1,0 +1,84 @@
+{# Mobile Menu Button #}
+<button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+  </svg>
+</button>
+
+{# Mobile Overlay #}
+<div class="mobile-sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
+{# Sidebar with Child List #}
+<aside id="sidebar" class="sidebar w-80 bg-darkbg2/80 backdrop-filter backdrop-blur-lg border-r border-primary/20 p-6 overflow-y-auto custom-scrollbar">
+  <div class="space-y-6">
+    
+    {# Add Child Button #}
+    <div class="mb-6">
+      <button onclick="toggleAddChildModal()" class="btn-primary w-full flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Add Child
+      </button>
+    </div>
+    
+    {# Children List #}
+    {% if children %}
+      <div class="space-y-2">
+        <h3 class="text-sm font-medium text-textsec uppercase tracking-wider mb-4">Children</h3>
+        
+        {% for child in children %}
+          <button 
+            onclick="selectChild('{{ child.child_hash }}')" 
+            class="child-item w-full text-left p-4 rounded-lg bg-darkbg1/50 border border-primary/10 hover:border-primary/30 hover:bg-darkbg1/80 transition-all group"
+            data-child-hash="{{ child.child_hash }}">
+            
+            <!-- Child Avatar -->
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
+                {{ child.first_name|first|upper }}
+              </div>
+              
+              <!-- Child Info -->
+              <div class="flex-1 min-w-0">
+                <p class="text-textmain font-medium text-sm truncate">
+                  {{ child.get_full_name }}
+                </p>
+                <p class="text-textsec text-xs">
+                  Age: {{ child.age|default:"N/A" }}
+                </p>
+              </div>
+              
+              <!-- Selection Indicator -->
+              <div class="w-2 h-2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity child-indicator" data-child="{{ child.child_hash }}"></div>
+            </div>
+          </button>
+        {% endfor %}
+      </div>
+      
+      {# Quick Stats Summary #}
+      <div class="mt-8 p-4 rounded-lg bg-darkbg1/30 border border-primary/10">
+        <h4 class="text-xs font-medium text-textsec uppercase tracking-wider mb-3">Quick Summary</h4>
+        <div class="space-y-2 text-xs">
+          <div class="flex justify-between">
+            <span class="text-textsec">Total Children:</span>
+            <span class="text-textmain font-medium">{{ children|length }}</span>
+          </div>
+        </div>
+      </div>
+      
+    {% else %}
+      {# No Children State #}
+      <div class="text-center py-8">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+          <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"></path>
+          </svg>
+        </div>
+        <h3 class="text-sm font-medium text-textmain mb-2">No Children Added</h3>
+        <p class="text-xs text-textsec mb-4">Add your first child to start monitoring their activities.</p>
+      </div>
+    {% endif %}
+    
+  </div>
+</aside>

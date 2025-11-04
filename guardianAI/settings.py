@@ -14,7 +14,16 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+# Load environment variables and .env file (if present). We import os here so
+# settings can read environment variables. Loading .env is optional — if
+# python-dotenv isn't installed, this will silently continue and the code
+# will still read real environment variables.
+import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv(str(BASE_DIR / '.env'))
+except Exception:
+    pass
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
@@ -23,9 +32,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-*f8^s_*#n^jcx$$_p!v_stn$+jgfi!*s1=#&oubk#eu8qfi7#('
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Read DEBUG from environment; default to True for local development.
+_debug_val = os.environ.get('DEBUG', 'True')
+DEBUG = str(_debug_val).lower() in ('1', 'true', 'yes', 'on')
 
-ALLOWED_HOSTS = ["*"]
+# Read ALLOWED_HOSTS from environment (comma separated). Example: ALLOWED_HOSTS=localhost,127.0.0.1
+_allowed = os.environ.get('ALLOWED_HOSTS', '')
+if _allowed:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = []
 
 
 # Application definition
