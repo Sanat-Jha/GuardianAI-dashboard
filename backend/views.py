@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.conf import settings
 import json
 
 from accounts.models import Child
@@ -56,6 +57,58 @@ def dashboard_view(request):
         locations = c.location_history.order_by('-timestamp')[:20]
         location_count = c.location_history.count()
         
+        # Get latest location and convert to address
+        latest_location_text = "No location data"
+        latest_location = c.location_history.order_by('-timestamp').first()
+        if latest_location:
+            try:
+                from opencage.geocoder import OpenCageGeocode
+                key = settings.OPENCAGE_API_KEY
+                if not key:
+                    raise ValueError("OPENCAGE_API_KEY not found in settings")
+                geocoder = OpenCageGeocode(key)
+                results = geocoder.reverse_geocode(latest_location.latitude, latest_location.longitude)
+                if results and len(results) > 0:
+                    # Extract compact address components
+                    components = results[0].get('components', {})
+                    
+                    # Get city (try multiple possible keys)
+                    city = (components.get('city') or 
+                           components.get('town') or 
+                           components.get('village') or 
+                           components.get('municipality') or 
+                           components.get('county') or '')
+                    
+                    # Get country
+                    country = components.get('country', '')
+                    
+                    # Get postcode
+                    postcode = components.get('postcode', '')
+                    
+                    # Get street address (limited to first 25 characters)
+                    road = components.get('road', '')
+                    house_number = components.get('house_number', '')
+                    street = f"{house_number} {road}".strip() if house_number else road
+                    street = street[:25] + '...' if len(street) > 25 else street
+                    
+                    # Format compact address
+                    address_parts = []
+                    if street:
+                        address_parts.append(street)
+                    if city:
+                        address_parts.append(city)
+                    if postcode:
+                        address_parts.append(postcode)
+                    if country:
+                        address_parts.append(country)
+                    
+                    latest_location_text = ', '.join(address_parts) if address_parts else f"{latest_location.latitude:.4f}, {latest_location.longitude:.4f}"
+                else:
+                    latest_location_text = f"{latest_location.latitude:.4f}, {latest_location.longitude:.4f}"
+            except Exception as e:
+                print(f"Error geocoding location: {e}")
+                latest_location_text = f"{latest_location.latitude:.4f}, {latest_location.longitude:.4f}"
+        
         # Site access logs
         site_logs = c.site_access_logs.order_by('-timestamp')[:30]
         site_count = c.site_access_logs.count()
@@ -77,11 +130,10 @@ def dashboard_view(request):
                 'avg_screen_time': avg_time,
                 'avg_screen_time_formatted': f"{avg_hours:.1f}h",
                 'recent_avg_formatted': f"{recent_avg/3600:.1f}h/day",
-                'location_count': location_count,
+                'latest_location': latest_location_text,
                 'site_access_count': site_count,
                 'blocked_sites': blocked_count,
                 'accessed_sites': accessed_count,
-                'block_rate': f"{(blocked_count/site_count*100):.0f}%" if site_count > 0 else "0%",
             },
             'top_apps': top_apps,
             'locations': locations,
@@ -257,7 +309,58 @@ def child_stats_data(request, child_hash):
                 locations_qs = locations_qs.filter(timestamp__lte=end_datetime)
             except ValueError:
                 pass
-        location_count = locations_qs.count()
+        
+        # Get latest location and convert to address
+        latest_location_text = "No location data"
+        latest_location = locations_qs.order_by('-timestamp').first()
+        if latest_location:
+            try:
+                from opencage.geocoder import OpenCageGeocode
+                key = settings.OPENCAGE_API_KEY
+                if not key:
+                    raise ValueError("OPENCAGE_API_KEY not found in settings")
+                geocoder = OpenCageGeocode(key)
+                results = geocoder.reverse_geocode(latest_location.latitude, latest_location.longitude)
+                if results and len(results) > 0:
+                    # Extract compact address components
+                    components = results[0].get('components', {})
+                    
+                    # Get city (try multiple possible keys)
+                    city = (components.get('city') or 
+                           components.get('town') or 
+                           components.get('village') or 
+                           components.get('municipality') or 
+                           components.get('county') or '')
+                    
+                    # Get country
+                    country = components.get('country', '')
+                    
+                    # Get postcode
+                    postcode = components.get('postcode', '')
+                    
+                    # Get street address (limited to first 25 characters)
+                    road = components.get('road', '')
+                    house_number = components.get('house_number', '')
+                    street = f"{house_number} {road}".strip() if house_number else road
+                    street = street[:25] + '...' if len(street) > 25 else street
+                    
+                    # Format compact address
+                    address_parts = []
+                    if street:
+                        address_parts.append(street)
+                    if city:
+                        address_parts.append(city)
+                    if postcode:
+                        address_parts.append(postcode)
+                    if country:
+                        address_parts.append(country)
+                    
+                    latest_location_text = ', '.join(address_parts) if address_parts else f"{latest_location.latitude:.4f}, {latest_location.longitude:.4f}"
+                else:
+                    latest_location_text = f"{latest_location.latitude:.4f}, {latest_location.longitude:.4f}"
+            except Exception as e:
+                print(f"Error geocoding location: {e}")
+                latest_location_text = f"{latest_location.latitude:.4f}, {latest_location.longitude:.4f}"
         
         # Site access logs - filter by date range if provided
         site_logs_qs = child.site_access_logs.all()
@@ -283,11 +386,10 @@ def child_stats_data(request, child_hash):
             'stats': {
                 'total_screen_time_hours': f"{total_hours:.1f}h",
                 'avg_screen_time_formatted': f"{avg_hours:.1f}h",
-                'location_count': location_count,
+                'latest_location': latest_location_text,
                 'site_access_count': site_count,
                 'blocked_sites': blocked_count,
                 'accessed_sites': accessed_count,
-                'block_rate': f"{(blocked_count/site_count*100):.0f}%" if site_count > 0 else "0%",
             }
         })
     except Child.DoesNotExist:

@@ -504,29 +504,29 @@ function updateStatCards(childHash, stats) {
     }
   }
   
-  // Update Locations Tracked
+  // Update Latest Location
   const locationStatCard = document.getElementById('stat-location-' + childHash);
   if (locationStatCard) {
     const valueEl = locationStatCard.querySelector('.stat-value');
     if (valueEl) {
       valueEl.classList.add('animate-pulse');
-      valueEl.textContent = stats.location_count;
+      valueEl.textContent = stats.latest_location;
       setTimeout(() => valueEl.classList.remove('animate-pulse'), 1000);
     }
   }
   
-  // Update Block Rate
+  // Update Blocked Sites
   const blockStatCard = document.getElementById('stat-block-' + childHash);
   if (blockStatCard) {
     const valueEl = blockStatCard.querySelector('.stat-value');
     const subtitleEl = blockStatCard.querySelector('.stat-subtitle');
     if (valueEl) {
       valueEl.classList.add('animate-pulse');
-      valueEl.textContent = stats.block_rate;
+      valueEl.textContent = stats.blocked_sites;
       setTimeout(() => valueEl.classList.remove('animate-pulse'), 1000);
     }
     if (subtitleEl) {
-      subtitleEl.textContent = stats.blocked_sites + ' blocked';
+      subtitleEl.textContent = stats.site_access_count + ' total sites';
     }
   }
   

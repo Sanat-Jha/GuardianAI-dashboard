@@ -48,10 +48,10 @@ document.body.classList.add('dashboard-page');
           {% with label="Average Daily" value=data.stats.avg_screen_time_formatted subtitle="Per day average" stat_id="stat-avg-"|add:child.child_hash %}
             {% include 'dashboard/components/stat_card.html' %}
           {% endwith %}
-          {% with label="Locations Tracked" value=data.stats.location_count subtitle="Total GPS points" stat_id="stat-location-"|add:child.child_hash %}
+          {% with label="Latest Location" value=data.stats.latest_location subtitle="Most recent GPS point" stat_id="stat-location-"|add:child.child_hash %}
             {% include 'dashboard/components/stat_card.html' %}
           {% endwith %}
-          {% with label="Block Rate" value=data.stats.block_rate subtitle=data.stats.blocked_sites|stringformat:"d"|add:" blocked" stat_id="stat-block-"|add:child.child_hash %}
+          {% with label="Blocked Sites" value=data.stats.blocked_sites subtitle=data.stats.site_access_count|stringformat:"d"|add:" total sites" stat_id="stat-block-"|add:child.child_hash %}
             {% include 'dashboard/components/stat_card.html' %}
           {% endwith %}
         </div>

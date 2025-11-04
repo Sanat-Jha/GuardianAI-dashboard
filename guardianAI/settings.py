@@ -33,15 +33,14 @@ SECRET_KEY = 'django-insecure-*f8^s_*#n^jcx$$_p!v_stn$+jgfi!*s1=#&oubk#eu8qfi7#(
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Read DEBUG from environment; default to True for local development.
-_debug_val = os.environ.get('DEBUG', 'True')
-DEBUG = str(_debug_val).lower() in ('1', 'true', 'yes', 'on')
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+print(f"DEBUG loaded: {DEBUG}")
 
-# Read ALLOWED_HOSTS from environment (comma separated). Example: ALLOWED_HOSTS=localhost,127.0.0.1
-_allowed = os.environ.get('ALLOWED_HOSTS', '')
-if _allowed:
-    ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
-else:
-    ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [ os.environ.get('ALLOWED_HOSTS', '')]
+print(f"ALLOWED_HOSTS loaded: {ALLOWED_HOSTS}")
+# OpenCage Geocoding API Key
+OPENCAGE_API_KEY = os.environ.get('OPENCAGE_API_KEY', '')
+print(f"OPENCAGE_API_KEY loaded: {'set' if OPENCAGE_API_KEY else 'not set'}")
 
 
 # Application definition
