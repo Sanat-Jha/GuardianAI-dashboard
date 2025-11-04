@@ -122,8 +122,19 @@ def dashboard_view(request):
         recent_total = sum([st.total_screen_time for st in recent_screen_time])
         recent_avg = recent_total / 7 if recent_screen_time.exists() else 0
         
+        # Calculate child's age
+        child_age = None
+        if c.date_of_birth:
+            today = timezone.now().date()
+            age = today.year - c.date_of_birth.year
+            # Adjust if birthday hasn't occurred yet this year
+            if today.month < c.date_of_birth.month or (today.month == c.date_of_birth.month and today.day < c.date_of_birth.day):
+                age -= 1
+            child_age = age
+        
         children_data[c] = {
             'child': c,
+            'age': child_age,
             'stats': {
                 'total_screen_time': total_time,
                 'total_screen_time_hours': f"{total_hours:.1f}h",

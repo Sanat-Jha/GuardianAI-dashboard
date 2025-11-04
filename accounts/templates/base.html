@@ -40,6 +40,7 @@
       font-family: 'Quicksand', system-ui, sans-serif;
       color: #FFFFFF;
       position: relative;
+      padding-top: 64px; /* Account for fixed navbar height */
     }
     .glass-card {
       background: rgba(28, 42, 60, 0.6);
@@ -81,7 +82,10 @@
       background: rgba(15, 27, 42, 0.98);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(35, 210, 226, 0.15);
-      position: relative;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
       z-index: 100;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
     }
@@ -177,7 +181,7 @@
     
     @media (max-width: 640px) {
       .site-header {
-        padding: 0.75rem 0;
+        padding: 0.5rem 0;
       }
       .site-header .max-w-7xl {
         padding: 0 0.75rem;
@@ -193,6 +197,9 @@
         gap: 0.5rem;
         padding: 0.5rem 0.75rem;
       }
+      body {
+        padding-top: 60px; /* Slightly less padding for smaller navbar */
+      }
     }
     
     @media (max-width: 480px) {
@@ -206,14 +213,17 @@
       .site-header .flex.items-center.gap-4 {
         padding: 0.375rem 0.5rem;
       }
+      body {
+        padding-top: 56px; /* Even less for very small screens */
+      }
     }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <header class="site-header w-full py-4 shadow-lg">
+  <header class="site-header w-full py-2 shadow-lg">
     <div class="max-w-7xl mx-auto px-6">
-      <div class="flex items-center justify-between w-full min-h-[60px]">
+      <div class="flex items-center justify-between w-full min-h-[48px]">
         <!-- Left: Brand Title -->
         <div class="flex-shrink-0">
           <h1 class="brand">Guardian AI</h1>
