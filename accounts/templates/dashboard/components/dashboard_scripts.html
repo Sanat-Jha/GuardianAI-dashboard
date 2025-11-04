@@ -97,8 +97,8 @@ function loadChartsForChild(childHash) {
       // 1. LINE CHART - Screen Time Trend with Gradient
       const lineCtx = lineCanvas.getContext('2d');
       const gradient = lineCtx.createLinearGradient(0, 0, 0, 300);
-      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
-      gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+      gradient.addColorStop(0, 'rgba(35, 210, 226, 0.3)');
+      gradient.addColorStop(1, 'rgba(35, 210, 226, 0.0)');
       
       window.chartsInstances[childHash].line = new Chart(lineCtx, {
         type: 'line',
@@ -107,18 +107,18 @@ function loadChartsForChild(childHash) {
           datasets: [{
             label: 'Screen Time (hours)',
             data: data.line_chart.data,
-            borderColor: '#3B82F6',
+            borderColor: '#23D2E2',
             backgroundColor: gradient,
             borderWidth: 3,
             fill: true,
             tension: 0.4,
-            pointBackgroundColor: '#3B82F6',
-            pointBorderColor: '#0F172A',
+            pointBackgroundColor: '#23D2E2',
+            pointBorderColor: '#0F1B2A',
             pointBorderWidth: 3,
             pointRadius: 5,
             pointHoverRadius: 8,
-            pointHoverBackgroundColor: '#60A5FA',
-            pointHoverBorderColor: '#F1F5F9',
+            pointHoverBackgroundColor: '#8EF6FF',
+            pointHoverBorderColor: '#FFFFFF',
             pointHoverBorderWidth: 3,
           }]
         },
@@ -135,7 +135,7 @@ function loadChartsForChild(childHash) {
               position: 'top',
               align: 'end',
               labels: { 
-                color: '#94A3B8', 
+                color: '#A9B3C1', 
                 font: { size: 12, weight: '600', family: 'Inter' },
                 padding: 15,
                 usePointStyle: true,
@@ -143,10 +143,10 @@ function loadChartsForChild(childHash) {
               }
             },
             tooltip: {
-              backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              titleColor: '#60A5FA',
-              bodyColor: '#F1F5F9',
-              borderColor: '#3B82F6',
+              backgroundColor: 'rgba(15, 27, 42, 0.95)',
+              titleColor: '#8EF6FF',
+              bodyColor: '#FFFFFF',
+              borderColor: '#23D2E2',
               borderWidth: 2,
               padding: 12,
               titleFont: { size: 14, weight: '700', family: 'Inter' },
@@ -166,21 +166,21 @@ function loadChartsForChild(childHash) {
             y: {
               beginAtZero: true,
               ticks: { 
-                color: '#64748B', 
+                color: '#A9B3C1', 
                 font: { size: 11, family: 'Inter' },
                 callback: function(value) {
                   return value + 'h';
                 }
               },
               grid: { 
-                color: 'rgba(148, 163, 184, 0.08)',
+                color: 'rgba(169, 179, 193, 0.08)',
                 drawBorder: false
               },
               border: { display: false }
             },
             x: {
               ticks: { 
-                color: '#64748B', 
+                color: '#A9B3C1', 
                 font: { size: 11, family: 'Inter' },
                 maxRotation: 45,
                 minRotation: 45
@@ -209,18 +209,18 @@ function loadChartsForChild(childHash) {
             label: 'Usage (hours)',
             data: data.pie_chart.data,
             backgroundColor: [
-              'rgba(59, 130, 246, 0.9)',
-              'rgba(96, 165, 250, 0.9)',
-              'rgba(37, 99, 235, 0.9)',
-              'rgba(30, 64, 175, 0.9)',
-              'rgba(147, 197, 253, 0.9)',
+              'rgba(35, 210, 226, 0.9)',
+              'rgba(142, 246, 255, 0.9)',
+              'rgba(24, 164, 180, 0.9)',
+              'rgba(123, 108, 246, 0.9)',
+              'rgba(184, 167, 255, 0.9)',
             ],
             borderColor: [
-              '#3B82F6',
-              '#60A5FA',
-              '#2563EB',
-              '#1E40AF',
-              '#93C5FD',
+              '#23D2E2',
+              '#8EF6FF',
+              '#18A4B4',
+              '#7B6CF6',
+              '#B8A7FF',
             ],
             borderWidth: 2,
             borderRadius: 8,
@@ -236,10 +236,10 @@ function loadChartsForChild(childHash) {
               display: false
             },
             tooltip: {
-              backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              titleColor: '#60A5FA',
-              bodyColor: '#F1F5F9',
-              borderColor: '#3B82F6',
+              backgroundColor: 'rgba(15, 27, 42, 0.95)',
+              titleColor: '#8EF6FF',
+              bodyColor: '#FFFFFF',
+              borderColor: '#23D2E2',
               borderWidth: 2,
               padding: 12,
               titleFont: { size: 13, weight: '600', family: 'Inter' },
@@ -258,21 +258,21 @@ function loadChartsForChild(childHash) {
             x: {
               beginAtZero: true,
               ticks: { 
-                color: '#64748B', 
+                color: '#A9B3C1', 
                 font: { size: 11, family: 'Inter' },
                 callback: function(value) {
                   return value + 'h';
                 }
               },
               grid: { 
-                color: 'rgba(148, 163, 184, 0.08)',
+                color: 'rgba(169, 179, 193, 0.08)',
                 drawBorder: false
               },
               border: { display: false }
             },
             y: {
               ticks: { 
-                color: '#F1F5F9', 
+                color: '#FFFFFF', 
                 font: { size: 12, weight: '500', family: 'Inter' }
               },
               grid: { 
@@ -310,11 +310,11 @@ function loadChartsForChild(childHash) {
             
             // Color variations
             const colors = [
-              { bg: 'bg-blue-500/20', border: 'border-blue-500/40', text: 'text-blue-400', bar: 'bg-blue-500' },
-              { bg: 'bg-blue-400/20', border: 'border-blue-400/40', text: 'text-blue-300', bar: 'bg-blue-400' },
-              { bg: 'bg-blue-600/20', border: 'border-blue-600/40', text: 'text-blue-500', bar: 'bg-blue-600' },
-              { bg: 'bg-indigo-500/20', border: 'border-indigo-500/40', text: 'text-indigo-400', bar: 'bg-indigo-500' },
-              { bg: 'bg-sky-500/20', border: 'border-sky-500/40', text: 'text-sky-400', bar: 'bg-sky-500' },
+              { bg: 'bg-cyan-500/20', border: 'border-cyan-500/40', text: 'text-cyan-400', bar: 'bg-cyan-500' },
+              { bg: 'bg-teal-500/20', border: 'border-teal-500/40', text: 'text-teal-400', bar: 'bg-teal-500' },
+              { bg: 'bg-purple-500/20', border: 'border-purple-500/40', text: 'text-purple-400', bar: 'bg-purple-500' },
+              { bg: 'bg-violet-500/20', border: 'border-violet-500/40', text: 'text-violet-400', bar: 'bg-violet-500' },
+              { bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', text: 'text-emerald-400', bar: 'bg-emerald-500' },
             ];
             const color = colors[index % colors.length];
             
@@ -358,11 +358,11 @@ function loadChartsForChild(childHash) {
       [lineCanvas, barCanvas].forEach(canvas => {
         if (canvas) {
           const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#EF4444';
+          ctx.fillStyle = '#FF4D5A';
           ctx.font = '14px Inter';
           ctx.textAlign = 'center';
           ctx.fillText('⚠ Error loading data', canvas.width / 2, canvas.height / 2 - 10);
-          ctx.fillStyle = '#94A3B8';
+          ctx.fillStyle = '#A9B3C1';
           ctx.font = '12px Inter';
           ctx.fillText('Please refresh the page', canvas.width / 2, canvas.height / 2 + 10);
         }
