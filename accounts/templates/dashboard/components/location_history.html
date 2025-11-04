@@ -2,7 +2,8 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
-  #location-map {
+  /* Map container - use attribute selector to match all child-specific maps */
+  [id^="location-map-"] {
     height: 500px;
     width: 100%;
     border-radius: 12px;
@@ -120,72 +121,65 @@
   }
 </style>
 
-<div class="glass-card group hover:border-primary/30 transition-all duration-300">
-  <details class="group/details" id="location-details">
-    <summary class="cursor-pointer flex items-center justify-between hover:translate-x-1 transition-transform duration-200">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-transform duration-300">
-          <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-textmain font-bold text-lg group-hover:text-primary transition-colors">Location History</h3>
-          <p class="text-xs text-textsec">GPS tracking data</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="bg-gradient-to-r from-primary/10 to-accent/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold border border-primary/30 shadow-lg shadow-primary/5">
-          {{ location_count }} <span class="text-xs text-textsec font-normal">entries</span>
-        </span>
-        <svg class="w-5 h-5 text-primary group-open/details:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+<div class="glass-card group hover:border-primary/30 transition-all duration-300" id="location-section-{{ child_hash }}">
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-transform duration-300">
+        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
         </svg>
       </div>
-    </summary>
-    
-    <div class="mt-6">
-      {% if locations %}
-        <div id="location-map"></div>
-        <div class="map-controls">
-          <button class="control-btn" onclick="fitAllMarkers()">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
-            </svg>
-            Fit All
-          </button>
-          <button class="control-btn" onclick="togglePath()">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-            </svg>
-            Toggle Path
-          </button>
-          <button class="control-btn" onclick="showFirstLocation()">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-            </svg>
-            First Location
-          </button>
-          <button class="control-btn" onclick="showLastLocation()">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-            </svg>
-            Latest Location
-          </button>
-        </div>
-      {% else %}
-        <div class="text-center py-12">
-          <svg class="w-16 h-16 mx-auto text-textsec/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-          <p class="text-textsec text-sm font-medium">No location data available</p>
-          <p class="text-textsec/60 text-xs mt-1">Location tracking data will appear here</p>
-        </div>
-      {% endif %}
+      <div>
+        <h3 class="text-textmain font-bold text-lg group-hover:text-primary transition-colors">Location History</h3>
+        <p class="text-xs text-textsec">GPS tracking data</p>
+      </div>
     </div>
-  </details>
+    <span class="bg-gradient-to-r from-primary/10 to-accent/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold border border-primary/30 shadow-lg shadow-primary/5 location-count-badge">
+      {{ location_count }} <span class="text-xs text-textsec font-normal">entries</span>
+    </span>
+  </div>
+  
+  <div class="location-map-container">
+    {% if locations %}
+      <div id="location-map-{{ child_hash }}"></div>
+      <div class="map-controls">
+        <button class="control-btn" onclick="fitAllMarkers('{{ child_hash }}')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+          </svg>
+          Fit All
+        </button>
+        <button class="control-btn" onclick="togglePath('{{ child_hash }}')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          Toggle Path
+        </button>
+        <button class="control-btn" onclick="showFirstLocation('{{ child_hash }}')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          First Location
+        </button>
+        <button class="control-btn" onclick="showLastLocation('{{ child_hash }}')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+          </svg>
+          Latest Location
+        </button>
+      </div>
+    {% else %}
+      <div class="text-center py-12 no-location-message">
+        <svg class="w-16 h-16 mx-auto text-textsec/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        <p class="text-textsec text-sm font-medium">No location data available</p>
+        <p class="text-textsec/60 text-xs mt-1">Location tracking data will appear here</p>
+      </div>
+    {% endif %}
+  </div>
 </div>
 
 <!-- Leaflet JS -->
@@ -193,8 +187,15 @@
 
 <script>
   {% if locations %}
-  // Location data from Django
-  const locationData = [
+  // Store location maps and data globally for each child
+  if (!window.locationMaps) window.locationMaps = {};
+  if (!window.locationData) window.locationData = {};
+  if (!window.locationMarkers) window.locationMarkers = {};
+  if (!window.pathLines) window.pathLines = {};
+  if (!window.showPaths) window.showPaths = {};
+  
+  // Location data from Django for this child
+  window.locationData['{{ child_hash }}'] = [
     {% for loc in locations %}
     {
       timestamp: '{{ loc.timestamp|date:"M d, Y H:i" }}',
@@ -204,19 +205,23 @@
     {% endfor %}
   ];
 
-  let locationMap, pathLine, locationMarkers = [];
-  let showPath = true;
+  window.showPaths['{{ child_hash }}'] = true;
 
-  // Initialize map
-  function initLocationMap() {
-    if (locationData.length === 0) return;
+  // Initialize map for specific child
+  function initLocationMap(childHash) {
+    const locationData = window.locationData[childHash];
+    if (!locationData || locationData.length === 0) return;
+
+    const mapId = 'location-map-' + childHash;
+    const mapElement = document.getElementById(mapId);
+    if (!mapElement) return;
 
     // Calculate center point
     const centerLat = locationData.reduce((sum, loc) => sum + loc.latitude, 0) / locationData.length;
     const centerLng = locationData.reduce((sum, loc) => sum + loc.longitude, 0) / locationData.length;
 
     // Initialize map
-    locationMap = L.map('location-map', {
+    window.locationMaps[childHash] = L.map(mapId, {
       center: [centerLat, centerLng],
       zoom: 12,
       zoomControl: true
@@ -226,7 +231,7 @@
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
       maxZoom: 19
-    }).addTo(locationMap);
+    }).addTo(window.locationMaps[childHash]);
 
     // Create custom icons
     const startIcon = L.divIcon({
@@ -255,6 +260,9 @@
       iconAnchor: [12, 24]
     });
 
+    // Initialize markers array
+    window.locationMarkers[childHash] = [];
+
     // Add markers
     locationData.forEach((loc, index) => {
       let icon = regularIcon;
@@ -269,7 +277,7 @@
       }
 
       const marker = L.marker([loc.latitude, loc.longitude], { icon })
-        .addTo(locationMap)
+        .addTo(window.locationMaps[childHash])
         .bindPopup(`
           <div class="popup-content">
             <div class="popup-title">
@@ -290,39 +298,42 @@
           </div>
         `);
 
-      locationMarkers.push(marker);
+      window.locationMarkers[childHash].push(marker);
     });
 
     // Draw path line connecting all locations
     const pathCoordinates = locationData.map(loc => [loc.latitude, loc.longitude]);
-    pathLine = L.polyline(pathCoordinates, {
+    window.pathLines[childHash] = L.polyline(pathCoordinates, {
       color: '#23D2E2',
       weight: 3,
       opacity: 0.8,
       smoothFactor: 1,
       dashArray: '10, 5'
-    }).addTo(locationMap);
+    }).addTo(window.locationMaps[childHash]);
 
     // Fit map to show all markers
     if (locationData.length > 0) {
       const bounds = L.latLngBounds(pathCoordinates);
-      locationMap.fitBounds(bounds, { padding: [50, 50] });
+      window.locationMaps[childHash].fitBounds(bounds, { padding: [50, 50] });
     }
   }
 
   // Control functions
-  function fitAllMarkers() {
-    if (locationMap && locationData.length > 0) {
+  function fitAllMarkers(childHash) {
+    const locationMap = window.locationMaps[childHash];
+    const locationData = window.locationData[childHash];
+    if (locationMap && locationData && locationData.length > 0) {
       const pathCoordinates = locationData.map(loc => [loc.latitude, loc.longitude]);
       const bounds = L.latLngBounds(pathCoordinates);
       locationMap.fitBounds(bounds, { padding: [50, 50], animate: true, duration: 0.5 });
     }
   }
 
-  function togglePath() {
+  function togglePath(childHash) {
+    const pathLine = window.pathLines[childHash];
     if (pathLine) {
-      showPath = !showPath;
-      if (showPath) {
+      window.showPaths[childHash] = !window.showPaths[childHash];
+      if (window.showPaths[childHash]) {
         pathLine.setStyle({ opacity: 0.8 });
       } else {
         pathLine.setStyle({ opacity: 0 });
@@ -330,31 +341,82 @@
     }
   }
 
-  function showFirstLocation() {
-    if (locationMap && locationData.length > 0) {
+  function showFirstLocation(childHash) {
+    const locationMap = window.locationMaps[childHash];
+    const locationData = window.locationData[childHash];
+    const locationMarkers = window.locationMarkers[childHash];
+    if (locationMap && locationData && locationData.length > 0) {
       locationMap.setView([locationData[0].latitude, locationData[0].longitude], 15, { animate: true });
       locationMarkers[0].openPopup();
     }
   }
 
-  function showLastLocation() {
-    if (locationMap && locationData.length > 0) {
+  function showLastLocation(childHash) {
+    const locationMap = window.locationMaps[childHash];
+    const locationData = window.locationData[childHash];
+    const locationMarkers = window.locationMarkers[childHash];
+    if (locationMap && locationData && locationData.length > 0) {
       const lastIndex = locationData.length - 1;
       locationMap.setView([locationData[lastIndex].latitude, locationData[lastIndex].longitude], 15, { animate: true });
       locationMarkers[lastIndex].openPopup();
     }
   }
 
-  // Initialize map when details is opened
-  const locationDetails = document.getElementById('location-details');
-  let mapInitialized = false;
-
-  locationDetails.addEventListener('toggle', (e) => {
-    if (e.target.open && !mapInitialized) {
-      setTimeout(() => {
-        initLocationMap();
-        mapInitialized = true;
-      }, 100);
+  // Initialize map when the child dashboard becomes visible
+  // Store initialization flag for this child
+  if (!window.locationMapsInitialized) window.locationMapsInitialized = {};
+  
+  // Create observer to watch when the parent dashboard becomes visible
+  document.addEventListener('DOMContentLoaded', function() {
+    const childDashboard = document.getElementById('child-{{ child_hash }}');
+    const locationSection = document.getElementById('location-section-{{ child_hash }}');
+    
+    if (childDashboard && locationSection) {
+      // Create a MutationObserver to watch for visibility changes
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            const isVisible = !childDashboard.classList.contains('hidden');
+            
+            // Initialize map only once when dashboard becomes visible
+            if (isVisible && !window.locationMapsInitialized['{{ child_hash }}']) {
+              window.locationMapsInitialized['{{ child_hash }}'] = true;
+              
+              setTimeout(() => {
+                initLocationMap('{{ child_hash }}');
+                
+                // Force map to recalculate size after initialization
+                setTimeout(() => {
+                  if (window.locationMaps && window.locationMaps['{{ child_hash }}']) {
+                    window.locationMaps['{{ child_hash }}'].invalidateSize();
+                  }
+                }, 200);
+              }, 100);
+            }
+          }
+        });
+      });
+      
+      // Start observing the child dashboard for class changes
+      observer.observe(childDashboard, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+      
+      // Also check if it's already visible (in case it's the first/only child)
+      if (!childDashboard.classList.contains('hidden') && !window.locationMapsInitialized['{{ child_hash }}']) {
+        window.locationMapsInitialized['{{ child_hash }}'] = true;
+        
+        setTimeout(() => {
+          initLocationMap('{{ child_hash }}');
+          
+          setTimeout(() => {
+            if (window.locationMaps && window.locationMaps['{{ child_hash }}']) {
+              window.locationMaps['{{ child_hash }}'].invalidateSize();
+            }
+          }, 200);
+        }, 100);
+      }
     }
   });
   {% endif %}

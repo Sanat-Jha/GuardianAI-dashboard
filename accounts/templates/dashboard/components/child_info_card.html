@@ -1,54 +1,101 @@
 <div class="glass-card mb-6 group hover:border-primary/30 transition-all duration-300">
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <div class="flex items-center gap-4">
-      <!-- Child Avatar with First Letter -->
-      <div class="relative">
-        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-blue-500 to-accent flex items-center justify-center shadow-xl ring-4 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300 group-hover:scale-105">
-          <span class="text-white font-bold text-2xl">
-            {{ child.first_name|first|upper }}
-          </span>
+  <div class="flex flex-col gap-4">
+    <!-- Top Section: Child Info and Status -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <!-- Child Avatar with First Letter -->
+        <div class="relative">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary via-blue-500 to-accent flex items-center justify-center shadow-xl ring-4 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300 group-hover:scale-105">
+            <span class="text-white font-bold text-2xl">
+              {{ child.first_name|first|upper }}
+            </span>
+          </div>
+          <!-- Online Status Indicator -->
+          <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-lime-500 rounded-full border-4 border-darkbg1 shadow-lg">
+            <div class="w-full h-full rounded-full bg-lime-400 animate-ping opacity-75"></div>
+          </div>
         </div>
-        <!-- Online Status Indicator -->
-        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-lime-500 rounded-full border-4 border-darkbg1 shadow-lg">
-          <div class="w-full h-full rounded-full bg-lime-400 animate-ping opacity-75"></div>
+        
+        <!-- Child Info -->
+        <div>
+          <h2 class="text-xl font-bold text-textmain group-hover:text-primary transition-colors mb-2">
+            {{ child.get_full_name }}
+          </h2>
+          
+          <div class="flex flex-wrap items-center gap-3 text-xs">
+            <div class="flex items-center gap-1.5 text-textsec bg-black/30 px-2.5 py-1 rounded-md">
+              <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+              </svg>
+              <span class="font-mono text-primary font-semibold">{{ child.child_hash }}</span>
+            </div>
+            
+            {% if child.date_of_birth %}
+              <div class="flex items-center gap-1.5 text-textsec bg-black/30 px-2.5 py-1 rounded-md">
+                <svg class="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span>{{ child.date_of_birth|date:"M d, Y" }}</span>
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
       
-      <!-- Child Info -->
-      <div>
-        <h2 class="text-xl font-bold text-textmain group-hover:text-primary transition-colors mb-2">
-          {{ child.get_full_name }}
-        </h2>
-        
-        <div class="flex flex-wrap items-center gap-3 text-xs">
-          <div class="flex items-center gap-1.5 text-textsec bg-black/30 px-2.5 py-1 rounded-md">
-            <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-            </svg>
-            <span class="font-mono text-primary font-semibold">{{ child.child_hash }}</span>
-          </div>
-          
-          {% if child.date_of_birth %}
-            <div class="flex items-center gap-1.5 text-textsec bg-black/30 px-2.5 py-1 rounded-md">
-              <svg class="w-3.5 h-3.5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-              </svg>
-              <span>{{ child.date_of_birth|date:"M d, Y" }}</span>
-            </div>
-          {% endif %}
-        </div>
+      <!-- Status Badge -->
+      <div class="mt-4 sm:mt-0">
+        <span class="inline-flex items-center gap-2 px-4 py-2 bg-lime-500/10 text-lime-400 rounded-lg text-sm font-semibold border border-lime-500/30 shadow-lg shadow-lime-500/10 group-hover:shadow-lime-500/20 transition-all">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime-500"></span>
+          </span>
+          Active
+        </span>
       </div>
     </div>
     
-    <!-- Status Badge -->
-    <div class="mt-4 sm:mt-0">
-      <span class="inline-flex items-center gap-2 px-4 py-2 bg-lime-500/10 text-lime-400 rounded-lg text-sm font-semibold border border-lime-500/30 shadow-lg shadow-lime-500/10 group-hover:shadow-lime-500/20 transition-all">
-        <span class="relative flex h-2.5 w-2.5">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime-500"></span>
-        </span>
-        Active
-      </span>
+    <!-- Divider -->
+    <div class="border-t border-primary/10"></div>
+    
+    <!-- Bottom Section: Date Range Selector -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <span class="text-sm font-semibold text-textmain">Data Range</span>
+      </div>
+      
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <label for="startDate{{ child.child_hash }}" class="text-xs font-medium text-textsec">From:</label>
+          <input 
+            type="date" 
+            id="startDate{{ child.child_hash }}" 
+            class="px-3 py-1.5 text-xs bg-black/30 border border-primary/30 rounded-lg text-textmain focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            onchange="updateAppChart('{{ child.child_hash }}')"
+          />
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="endDate{{ child.child_hash }}" class="text-xs font-medium text-textsec">To:</label>
+          <input 
+            type="date" 
+            id="endDate{{ child.child_hash }}" 
+            class="px-3 py-1.5 text-xs bg-black/30 border border-primary/30 rounded-lg text-textmain focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            onchange="updateAppChart('{{ child.child_hash }}')"
+          />
+        </div>
+        <button 
+          onclick="resetAppChartDates('{{ child.child_hash }}')" 
+          class="px-3 py-1.5 text-xs font-medium bg-primary/20 text-primary rounded-lg hover:bg-primary/30 border border-primary/30 hover:border-primary/50 transition-all duration-200 flex items-center gap-1.5"
+          title="Reset to last 30 days"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Reset
+        </button>
+      </div>
     </div>
   </div>
 </div>

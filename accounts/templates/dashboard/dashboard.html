@@ -42,47 +42,43 @@ document.body.classList.add('dashboard-page');
         
         {# Statistics Grid #}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {% with label="Total Screen Time" value=data.stats.total_screen_time_hours subtitle="All-time usage" %}
+          {% with label="Total Screen Time" value=data.stats.total_screen_time_hours subtitle="All-time usage" stat_id="stat-total-"|add:child.child_hash %}
             {% include 'dashboard/components/stat_card.html' %}
           {% endwith %}
-          {% with label="Average Daily" value=data.stats.avg_screen_time_formatted subtitle="Per day average" %}
+          {% with label="Average Daily" value=data.stats.avg_screen_time_formatted subtitle="Per day average" stat_id="stat-avg-"|add:child.child_hash %}
             {% include 'dashboard/components/stat_card.html' %}
           {% endwith %}
-          {% with label="Locations Tracked" value=data.stats.location_count subtitle="Total GPS points" %}
+          {% with label="Locations Tracked" value=data.stats.location_count subtitle="Total GPS points" stat_id="stat-location-"|add:child.child_hash %}
             {% include 'dashboard/components/stat_card.html' %}
           {% endwith %}
-          {% with label="Block Rate" value=data.stats.block_rate subtitle=data.stats.blocked_sites|stringformat:"d"|add:" blocked" %}
+          {% with label="Block Rate" value=data.stats.block_rate subtitle=data.stats.blocked_sites|stringformat:"d"|add:" blocked" stat_id="stat-block-"|add:child.child_hash %}
             {% include 'dashboard/components/stat_card.html' %}
           {% endwith %}
         </div>
-        
-        {# Charts Section #}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {# Screen Time Chart - Full Width #}
+        <div class="w-full mb-6">
           {% with child_hash=child.child_hash %}
             {% include 'dashboard/components/screen_time_chart.html' %}
           {% endwith %}
+        </div>
+        
+        {# App Usage Chart and Top Apps List in one row #}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {% with child_hash=child.child_hash %}
             {% include 'dashboard/components/app_usage_chart.html' %}
           {% endwith %}
+          {% with top_apps=data.top_apps child_hash=child.child_hash %}
+            {% include 'dashboard/components/top_apps_list.html' %}
+          {% endwith %}
         </div>
-        
-        {# Top Apps List #}
-        {% with top_apps=data.top_apps child_hash=child.child_hash %}
-          {% include 'dashboard/components/top_apps_list.html' %}
-        {% endwith %}
-        
         {# Detailed Data Sections #}
         <div class="mt-6 space-y-6">
-          {% with locations=data.locations location_count=data.stats.location_count %}
+          {% with locations=data.locations location_count=data.stats.location_count child_hash=child.child_hash %}
             {% include 'dashboard/components/location_history.html' %}
           {% endwith %}
           
-          {% with site_logs=data.site_logs site_count=data.stats.site_access_count %}
+          {% with site_logs=data.site_logs site_count=data.stats.site_access_count child_hash=child.child_hash %}
             {% include 'dashboard/components/site_access_log.html' %}
-          {% endwith %}
-          
-          {% with screen_time_list=data.screen_time_list %}
-            {% include 'dashboard/components/screen_time_details.html' %}
           {% endwith %}
         </div>
         

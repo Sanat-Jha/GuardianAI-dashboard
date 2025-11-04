@@ -26,9 +26,8 @@ def dashboard_view(request):
     children_data = {}
     
     for c in children:
-        # Get screen time records (last 30 days)
+        # Get screen time records (last 30 days) for statistics calculation
         st_qs = ScreenTime.objects.filter(child=c).order_by('-date')[:30]
-        screen_time_list = list(st_qs)
         
         # Calculate statistics
         total_time = sum([st.total_screen_time for st in st_qs])
@@ -72,7 +71,6 @@ def dashboard_view(request):
         
         children_data[c] = {
             'child': c,
-            'screen_time_list': screen_time_list,
             'stats': {
                 'total_screen_time': total_time,
                 'total_screen_time_hours': f"{total_hours:.1f}h",
@@ -109,11 +107,38 @@ def dashboard_view(request):
 @login_required
 def child_chart_data(request, child_hash):
     from backend.models import Child, ScreenTime
+    from datetime import datetime, timedelta
     import json
     
     try:
         child = Child.objects.get(child_hash=child_hash, guardians=request.user)
-        st_qs = ScreenTime.objects.filter(child=child).order_by('-date')[:30]
+        
+        # Get date range from query parameters
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        
+        # Build queryset with date filters if provided
+        st_qs = ScreenTime.objects.filter(child=child)
+        
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+                st_qs = st_qs.filter(date__gte=start_date_obj)
+            except ValueError:
+                pass  # Invalid date format, ignore
+        
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                st_qs = st_qs.filter(date__lte=end_date_obj)
+            except ValueError:
+                pass  # Invalid date format, ignore
+        
+        # If no date filters provided, default to last 30 days
+        if not start_date and not end_date:
+            st_qs = st_qs.order_by('-date')[:30]
+        else:
+            st_qs = st_qs.order_by('-date')
         
         # Prepare data for line chart (screen time over days)
         dates = []
@@ -171,6 +196,225 @@ def child_chart_data(request, child_hash):
             'line_chart': {'labels': ['No Data'], 'data': [0]},
             'pie_chart': {'labels': ['No Data'], 'data': [0]}
         }, status=500)
+
+
+# API endpoint for stats data
+@login_required
+def child_stats_data(request, child_hash):
+    from backend.models import Child, ScreenTime
+    from datetime import datetime, timedelta
+    
+    try:
+        child = Child.objects.get(child_hash=child_hash, guardians=request.user)
+        
+        # Get date range from query parameters
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        
+        # Build queryset with date filters if provided
+        st_qs = ScreenTime.objects.filter(child=child)
+        
+        if start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+                st_qs = st_qs.filter(date__gte=start_date_obj)
+            except ValueError:
+                pass
+        
+        if end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                st_qs = st_qs.filter(date__lte=end_date_obj)
+            except ValueError:
+                pass
+        
+        # If no date filters provided, default to last 30 days
+        if not start_date and not end_date:
+            st_qs = st_qs.order_by('-date')[:30]
+        else:
+            st_qs = st_qs.order_by('-date')
+        
+        # Calculate statistics
+        total_time = sum([st.total_screen_time for st in st_qs])
+        avg_time = total_time / len(st_qs) if st_qs else 0
+        
+        # Format time strings
+        total_hours = total_time / 3600
+        avg_hours = avg_time / 3600
+        
+        # Location data - filter by date range if provided
+        locations_qs = child.location_history.all()
+        if start_date:
+            try:
+                start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+                locations_qs = locations_qs.filter(timestamp__gte=start_datetime)
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+                end_datetime = end_datetime.replace(hour=23, minute=59, second=59)
+                locations_qs = locations_qs.filter(timestamp__lte=end_datetime)
+            except ValueError:
+                pass
+        location_count = locations_qs.count()
+        
+        # Site access logs - filter by date range if provided
+        site_logs_qs = child.site_access_logs.all()
+        if start_date:
+            try:
+                start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+                site_logs_qs = site_logs_qs.filter(timestamp__gte=start_datetime)
+            except ValueError:
+                pass
+        if end_date:
+            try:
+                end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+                end_datetime = end_datetime.replace(hour=23, minute=59, second=59)
+                site_logs_qs = site_logs_qs.filter(timestamp__lte=end_datetime)
+            except ValueError:
+                pass
+        
+        site_count = site_logs_qs.count()
+        blocked_count = site_logs_qs.filter(accessed=False).count()
+        accessed_count = site_logs_qs.filter(accessed=True).count()
+        
+        return JsonResponse({
+            'stats': {
+                'total_screen_time_hours': f"{total_hours:.1f}h",
+                'avg_screen_time_formatted': f"{avg_hours:.1f}h",
+                'location_count': location_count,
+                'site_access_count': site_count,
+                'blocked_sites': blocked_count,
+                'accessed_sites': accessed_count,
+                'block_rate': f"{(blocked_count/site_count*100):.0f}%" if site_count > 0 else "0%",
+            }
+        })
+    except Child.DoesNotExist:
+        return JsonResponse({'error': 'Child not found'}, status=404)
+    except Exception as e:
+        import traceback
+        print(f"Error in child_stats_data: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# API endpoint for locations data
+@login_required
+def child_locations_data(request, child_hash):
+    from backend.models import Child
+    from datetime import datetime
+    
+    try:
+        child = Child.objects.get(child_hash=child_hash, guardians=request.user)
+        
+        # Get date range from query parameters
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        
+        # Build queryset with date filters if provided
+        locations_qs = child.location_history.all()
+        
+        if start_date:
+            try:
+                start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+                locations_qs = locations_qs.filter(timestamp__gte=start_datetime)
+            except ValueError:
+                pass
+        
+        if end_date:
+            try:
+                end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+                end_datetime = end_datetime.replace(hour=23, minute=59, second=59)
+                locations_qs = locations_qs.filter(timestamp__lte=end_datetime)
+            except ValueError:
+                pass
+        
+        # If no date filters provided, default to last 20 entries
+        if not start_date and not end_date:
+            locations_qs = locations_qs.order_by('-timestamp')[:20]
+        else:
+            locations_qs = locations_qs.order_by('-timestamp')
+        
+        # Prepare location data for JSON response
+        locations_list = []
+        for loc in locations_qs:
+            locations_list.append({
+                'timestamp': loc.timestamp.strftime('%b %d, %Y %H:%M'),
+                'latitude': loc.latitude,
+                'longitude': loc.longitude
+            })
+        
+        return JsonResponse({
+            'locations': locations_list,
+            'count': len(locations_list)
+        })
+    except Child.DoesNotExist:
+        return JsonResponse({'error': 'Child not found'}, status=404)
+    except Exception as e:
+        import traceback
+        print(f"Error in child_locations_data: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# API endpoint for site logs data
+@login_required
+def child_site_logs_data(request, child_hash):
+    from backend.models import Child
+    from datetime import datetime
+    
+    try:
+        child = Child.objects.get(child_hash=child_hash, guardians=request.user)
+        
+        # Get date range from query parameters
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        
+        # Build queryset with date filters if provided
+        site_logs_qs = child.site_access_logs.all()
+        
+        if start_date:
+            try:
+                start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+                site_logs_qs = site_logs_qs.filter(timestamp__gte=start_datetime)
+            except ValueError:
+                pass
+        
+        if end_date:
+            try:
+                end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+                end_datetime = end_datetime.replace(hour=23, minute=59, second=59)
+                site_logs_qs = site_logs_qs.filter(timestamp__lte=end_datetime)
+            except ValueError:
+                pass
+        
+        # If no date filters provided, default to last 30 entries
+        if not start_date and not end_date:
+            site_logs_qs = site_logs_qs.order_by('-timestamp')[:30]
+        else:
+            site_logs_qs = site_logs_qs.order_by('-timestamp')
+        
+        # Prepare site logs data for JSON response
+        site_logs_list = []
+        for log in site_logs_qs:
+            site_logs_list.append({
+                'timestamp': log.timestamp.strftime('%b %d, %Y %H:%M'),
+                'url': log.url,
+                'accessed': log.accessed
+            })
+        
+        return JsonResponse({
+            'site_logs': site_logs_list,
+            'count': len(site_logs_list)
+        })
+    except Child.DoesNotExist:
+        return JsonResponse({'error': 'Child not found'}, status=404)
+    except Exception as e:
+        import traceback
+        print(f"Error in child_site_logs_data: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @csrf_exempt

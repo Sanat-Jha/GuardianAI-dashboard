@@ -382,6 +382,413 @@ function loadChartsForChild(childHash) {
     });
 }
 
+// Update App Chart with Date Range
+function updateAppChart(childHash) {
+  const startDateInput = document.getElementById('startDate' + childHash);
+  const endDateInput = document.getElementById('endDate' + childHash);
+  const startDate = startDateInput?.value;
+  const endDate = endDateInput?.value;
+  
+  // Build URL with date parameters
+  let chartUrl = '/dashboard/chart-data/' + childHash + '/';
+  let statsUrl = '/dashboard/stats/' + childHash + '/';
+  let locationsUrl = '/dashboard/locations/' + childHash + '/';
+  let siteLogsUrl = '/dashboard/site-logs/' + childHash + '/';
+  const params = new URLSearchParams();
+  
+  if (startDate) {
+    params.append('start_date', startDate);
+  }
+  if (endDate) {
+    params.append('end_date', endDate);
+  }
+  
+  if (params.toString()) {
+    chartUrl += '?' + params.toString();
+    statsUrl += '?' + params.toString();
+    locationsUrl += '?' + params.toString();
+    siteLogsUrl += '?' + params.toString();
+  }
+  
+  console.log('Fetching chart data with dates:', chartUrl);
+  console.log('Fetching stats data with dates:', statsUrl);
+  console.log('Fetching locations data with dates:', locationsUrl);
+  console.log('Fetching site logs data with dates:', siteLogsUrl);
+  
+  // Fetch chart data, stats data, locations data, and site logs data in parallel
+  Promise.all([
+    fetch(chartUrl).then(res => {
+      if (!res.ok) throw new Error('Chart data fetch failed');
+      return res.json();
+    }),
+    fetch(statsUrl).then(res => {
+      if (!res.ok) throw new Error('Stats data fetch failed');
+      return res.json();
+    }),
+    fetch(locationsUrl).then(res => {
+      if (!res.ok) throw new Error('Locations data fetch failed');
+      return res.json();
+    }),
+    fetch(siteLogsUrl).then(res => {
+      if (!res.ok) throw new Error('Site logs fetch failed');
+      return res.json();
+    })
+  ])
+    .then(([chartData, statsData, locationsData, siteLogsData]) => {
+      console.log('Updated chart data loaded:', chartData);
+      console.log('Updated stats data loaded:', statsData);
+      console.log('Updated locations data loaded:', locationsData);
+      console.log('Updated site logs data loaded:', siteLogsData);
+      
+      // Update line chart
+      if (window.chartsInstances && window.chartsInstances[childHash]) {
+        // Update line chart data
+        if (window.chartsInstances[childHash].line) {
+          window.chartsInstances[childHash].line.data.labels = chartData.line_chart.labels;
+          window.chartsInstances[childHash].line.data.datasets[0].data = chartData.line_chart.data;
+          window.chartsInstances[childHash].line.update();
+        }
+        
+        // Update bar chart data
+        if (window.chartsInstances[childHash].bar) {
+          window.chartsInstances[childHash].bar.data.labels = chartData.pie_chart.labels;
+          window.chartsInstances[childHash].bar.data.datasets[0].data = chartData.pie_chart.data;
+          window.chartsInstances[childHash].bar.update();
+          
+          // Update total time display
+          const totalTime = chartData.pie_chart.data.reduce((a, b) => a + b, 0);
+          document.getElementById('totalAppTime' + childHash).textContent = totalTime.toFixed(1) + 'h';
+        }
+        
+        // Update app analytics if present
+        updateAppAnalytics(childHash, chartData);
+      }
+      
+      // Update stat cards
+      updateStatCards(childHash, statsData.stats);
+      
+      // Update location map
+      updateLocationMap(childHash, locationsData.locations, locationsData.count);
+      
+      // Update site logs
+      updateSiteLogs(childHash, siteLogsData.site_logs, siteLogsData.count);
+    })
+    .catch(error => {
+      console.error('Error loading data:', error);
+      alert('Failed to load data. Please try again.');
+    });
+}
+
+// Update Stat Cards with new data
+function updateStatCards(childHash, stats) {
+  // Update Total Screen Time
+  const totalStatCard = document.getElementById('stat-total-' + childHash);
+  if (totalStatCard) {
+    const valueEl = totalStatCard.querySelector('.stat-value');
+    if (valueEl) {
+      // Add animation class
+      valueEl.classList.add('animate-pulse');
+      valueEl.textContent = stats.total_screen_time_hours;
+      setTimeout(() => valueEl.classList.remove('animate-pulse'), 1000);
+    }
+  }
+  
+  // Update Average Daily
+  const avgStatCard = document.getElementById('stat-avg-' + childHash);
+  if (avgStatCard) {
+    const valueEl = avgStatCard.querySelector('.stat-value');
+    if (valueEl) {
+      valueEl.classList.add('animate-pulse');
+      valueEl.textContent = stats.avg_screen_time_formatted;
+      setTimeout(() => valueEl.classList.remove('animate-pulse'), 1000);
+    }
+  }
+  
+  // Update Locations Tracked
+  const locationStatCard = document.getElementById('stat-location-' + childHash);
+  if (locationStatCard) {
+    const valueEl = locationStatCard.querySelector('.stat-value');
+    if (valueEl) {
+      valueEl.classList.add('animate-pulse');
+      valueEl.textContent = stats.location_count;
+      setTimeout(() => valueEl.classList.remove('animate-pulse'), 1000);
+    }
+  }
+  
+  // Update Block Rate
+  const blockStatCard = document.getElementById('stat-block-' + childHash);
+  if (blockStatCard) {
+    const valueEl = blockStatCard.querySelector('.stat-value');
+    const subtitleEl = blockStatCard.querySelector('.stat-subtitle');
+    if (valueEl) {
+      valueEl.classList.add('animate-pulse');
+      valueEl.textContent = stats.block_rate;
+      setTimeout(() => valueEl.classList.remove('animate-pulse'), 1000);
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = stats.blocked_sites + ' blocked';
+    }
+  }
+  
+  console.log('Stat cards updated for child:', childHash);
+}
+
+// Update Location Map with new data
+function updateLocationMap(childHash, locations, count) {
+  const locationSection = document.getElementById('location-section-' + childHash);
+  if (!locationSection) return;
+  
+  // Update location count badge
+  const countBadge = locationSection.querySelector('.location-count-badge');
+  if (countBadge) {
+    countBadge.innerHTML = `${count} <span class="text-xs text-textsec font-normal">entries</span>`;
+  }
+  
+  // Update location data
+  if (window.locationData) {
+    window.locationData[childHash] = locations;
+  }
+  
+  const mapContainer = locationSection.querySelector('.location-map-container');
+  if (!mapContainer) return;
+  
+  if (locations.length === 0) {
+    // Show no data message
+    mapContainer.innerHTML = `
+      <div class="text-center py-12 no-location-message">
+        <svg class="w-16 h-16 mx-auto text-textsec/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        <p class="text-textsec text-sm font-medium">No location data for selected date range</p>
+        <p class="text-textsec/60 text-xs mt-1">Try selecting a different date range</p>
+      </div>
+    `;
+  } else {
+    // Destroy existing map if it exists
+    if (window.locationMaps && window.locationMaps[childHash]) {
+      window.locationMaps[childHash].remove();
+      delete window.locationMaps[childHash];
+    }
+    
+    // Clear markers
+    if (window.locationMarkers && window.locationMarkers[childHash]) {
+      window.locationMarkers[childHash] = [];
+    }
+    
+    // Recreate map container and controls
+    mapContainer.innerHTML = `
+      <div id="location-map-${childHash}"></div>
+      <div class="map-controls">
+        <button class="control-btn" onclick="fitAllMarkers('${childHash}')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+          </svg>
+          Fit All
+        </button>
+        <button class="control-btn" onclick="togglePath('${childHash}')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          Toggle Path
+        </button>
+        <button class="control-btn" onclick="showFirstLocation('${childHash}')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          First Location
+        </button>
+        <button class="control-btn" onclick="showLastLocation('${childHash}')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+          </svg>
+          Latest Location
+        </button>
+      </div>
+    `;
+    
+    // Reinitialize map with new data
+    setTimeout(() => {
+      if (typeof initLocationMap === 'function') {
+        initLocationMap(childHash);
+        // Force map to recalculate size after initialization
+        setTimeout(() => {
+          if (window.locationMaps && window.locationMaps[childHash]) {
+            window.locationMaps[childHash].invalidateSize();
+          }
+        }, 200);
+      }
+    }, 100);
+  }
+  
+  console.log('Location map updated for child:', childHash, 'with', count, 'locations');
+}
+
+// Update Site Access Logs with new data
+function updateSiteLogs(childHash, siteLogs, count) {
+  const siteSection = document.getElementById('site-section-' + childHash);
+  if (!siteSection) return;
+  
+  // Update site count badge
+  const countBadge = siteSection.querySelector('.site-count-badge');
+  if (countBadge) {
+    countBadge.innerHTML = `${count} <span class="text-xs text-textsec font-normal">entries</span>`;
+  }
+  
+  const logsContainer = siteSection.querySelector('.site-logs-container');
+  if (!logsContainer) return;
+  
+  if (siteLogs.length === 0) {
+    // Show no data message
+    logsContainer.innerHTML = `
+      <div class="text-center py-12">
+        <svg class="w-16 h-16 mx-auto text-textsec/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+        </svg>
+        <p class="text-textsec text-sm font-medium">No site access data for selected date range</p>
+        <p class="text-textsec/60 text-xs mt-1">Try selecting a different date range</p>
+      </div>
+    `;
+  } else {
+    // Rebuild site logs list
+    let logsHTML = '';
+    siteLogs.forEach(log => {
+      const accessed = log.accessed;
+      const statusColor = accessed ? 'lime' : 'red';
+      const statusLabel = accessed ? 'ACCESSED' : 'BLOCKED';
+      const statusIcon = accessed 
+        ? '<svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+        : '<svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+      
+      // Parse timestamp to readable format
+      const timestamp = new Date(log.timestamp);
+      const formattedDate = timestamp.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      }) + ' ' + timestamp.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      logsHTML += `
+        <div class="relative bg-gradient-to-r from-black/40 to-black/20 rounded-lg p-4 border border-${statusColor}-500/20 hover:border-${statusColor}-500/40 transition-all duration-300 group/item">
+          <!-- Left accent bar -->
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-${statusColor}-500 to-${statusColor}-600 rounded-l-lg"></div>
+          
+          <div class="flex flex-col gap-3 ml-2">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-${statusColor}-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span class="text-textmain text-sm font-medium">${formattedDate}</span>
+              </div>
+              <span class="font-bold text-xs px-3 py-1 rounded-lg bg-${statusColor}-500/10 text-${statusColor}-400 border border-${statusColor}-500/30 shadow-lg">
+                ${statusIcon}
+                ${statusLabel}
+              </span>
+            </div>
+            
+            <div class="flex items-start gap-2 bg-black/50 p-3 rounded-lg border border-primary/10">
+              <svg class="w-4 h-4 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+              </svg>
+              <span class="break-all text-textsec text-sm font-mono leading-relaxed">${log.url}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    logsContainer.innerHTML = logsHTML;
+  }
+  
+  console.log('Site logs updated for child:', childHash, 'with', count, 'entries');
+}
+
+// Reset App Chart Dates to Last 30 Days
+function resetAppChartDates(childHash) {
+  const startDateInput = document.getElementById('startDate' + childHash);
+  const endDateInput = document.getElementById('endDate' + childHash);
+  
+  if (startDateInput) startDateInput.value = '';
+  if (endDateInput) endDateInput.value = '';
+  
+  // Reload charts with default data
+  updateAppChart(childHash);
+}
+
+// Update App Analytics Section
+function updateAppAnalytics(childHash, data) {
+  const appAnalyticsDiv = document.getElementById('appAnalytics' + childHash);
+  if (!appAnalyticsDiv) return;
+  
+  const totalTime = data.pie_chart.data.reduce((a, b) => a + b, 0);
+  let analyticsHTML = '';
+  
+  if (data.pie_chart.labels[0] === 'No Data' || data.pie_chart.data.length === 0) {
+    analyticsHTML = `
+      <div class="text-center py-12">
+        <svg class="w-16 h-16 mx-auto text-textsec/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+        <p class="text-textsec text-sm">No application data available</p>
+        <p class="text-textsec/60 text-xs mt-1">Data will appear once the child uses their device</p>
+      </div>
+    `;
+  } else {
+    const maxTime = Math.max(...data.pie_chart.data);
+    
+    data.pie_chart.labels.forEach((app, index) => {
+      const time = data.pie_chart.data[index];
+      const percentage = ((time / totalTime) * 100).toFixed(1);
+      const barWidth = (time / maxTime * 100).toFixed(1);
+      const minutes = Math.round((time % 1) * 60);
+      const hours = Math.floor(time);
+      
+      const colors = [
+        { bg: 'bg-cyan-500/20', border: 'border-cyan-500/40', text: 'text-cyan-400', bar: 'bg-cyan-500' },
+        { bg: 'bg-teal-500/20', border: 'border-teal-500/40', text: 'text-teal-400', bar: 'bg-teal-500' },
+        { bg: 'bg-purple-500/20', border: 'border-purple-500/40', text: 'text-purple-400', bar: 'bg-purple-500' },
+        { bg: 'bg-violet-500/20', border: 'border-violet-500/40', text: 'text-violet-400', bar: 'bg-violet-500' },
+        { bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', text: 'text-emerald-400', bar: 'bg-emerald-500' },
+      ];
+      const color = colors[index % colors.length];
+      
+      analyticsHTML += `
+        <div class="bg-black/30 border ${color.border} rounded-xl p-4 hover:bg-black/40 transition-all duration-300 group">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="w-3 h-3 ${color.bar} rounded-full"></div>
+                <h4 class="font-semibold text-textmain text-sm group-hover:${color.text} transition-colors">${app}</h4>
+              </div>
+              <p class="text-xs text-textsec ml-5">${percentage}% of total usage</p>
+            </div>
+            <div class="text-right">
+              <p class="text-2xl font-bold ${color.text}">${hours}<span class="text-sm">h</span></p>
+              ${minutes > 0 ? `<p class="text-xs text-textsec">${minutes}m</p>` : ''}
+            </div>
+          </div>
+          
+          <div class="relative">
+            <div class="w-full bg-black/50 rounded-full h-2 overflow-hidden">
+              <div class="${color.bar} h-2 rounded-full transition-all duration-1000 ease-out" 
+                   style="width: ${barWidth}%"></div>
+            </div>
+            <div class="absolute -top-1 right-0 text-xs ${color.text} font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+              ${time.toFixed(2)}h
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  appAnalyticsDiv.innerHTML = analyticsHTML;
+}
+
 // Mobile Sidebar Functions
 function toggleMobileSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -424,7 +831,32 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check if child items exist
   const childItems = document.querySelectorAll('.child-item');
   console.log('Found', childItems.length, 'child items');
+  
+  // Initialize date inputs with last 30 days range
+  initializeDateInputs();
 });
+
+// Initialize date inputs with default range (last 30 days)
+function initializeDateInputs() {
+  const today = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  const endDateStr = today.toISOString().split('T')[0];
+  const startDateStr = thirtyDaysAgo.toISOString().split('T')[0];
+  
+  // Set max date to today for all date inputs
+  document.querySelectorAll('input[type="date"]').forEach(input => {
+    input.setAttribute('max', endDateStr);
+    
+    // Set default values
+    if (input.id.startsWith('startDate')) {
+      input.value = startDateStr;
+    } else if (input.id.startsWith('endDate')) {
+      input.value = endDateStr;
+    }
+  });
+}
 
 // Add smooth scroll behavior
 document.documentElement.style.scrollBehavior = 'smooth';

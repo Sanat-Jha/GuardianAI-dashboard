@@ -1,28 +1,24 @@
-<div class="glass-card group hover:border-primary/30 transition-all duration-300">
-  <details class="group/details">
-    <summary class="cursor-pointer flex items-center justify-between hover:translate-x-1 transition-transform duration-200">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-transform duration-300">
-          <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-textmain font-bold text-lg group-hover:text-primary transition-colors">Site Access Log</h3>
-          <p class="text-xs text-textsec">Website access monitoring</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="bg-gradient-to-r from-primary/10 to-accent/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold border border-primary/30 shadow-lg shadow-primary/5">
-          {{ site_count }} <span class="text-xs text-textsec font-normal">entries</span>
-        </span>
-        <svg class="w-5 h-5 text-primary group-open/details:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+<div id="site-section-{{ child_hash }}" class="glass-card group hover:border-primary/30 transition-all duration-300">
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/30">
+        <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
         </svg>
       </div>
-    </summary>
-    
-    <div class="mt-6 space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+      <div>
+        <h3 class="text-textmain font-bold text-lg">Site Access Log</h3>
+        <p class="text-xs text-textsec">Website access monitoring</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="site-count-badge bg-gradient-to-r from-primary/10 to-accent/10 text-primary px-3 py-1.5 rounded-lg text-sm font-bold border border-primary/30 shadow-lg shadow-primary/5">
+        {{ site_count }} <span class="text-xs text-textsec font-normal">entries</span>
+      </span>
+    </div>
+  </div>
+  
+  <div class="site-logs-container space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
       {% for log in site_logs %}
         <div class="relative bg-gradient-to-r from-black/40 to-black/20 rounded-lg p-4 border {% if log.accessed %}border-lime-500/20 hover:border-lime-500/40{% else %}border-red-500/20 hover:border-red-500/40{% endif %} transition-all duration-300 group/item">
           <!-- Left accent bar -->
@@ -69,5 +65,4 @@
         </div>
       {% endfor %}
     </div>
-  </details>
 </div>
