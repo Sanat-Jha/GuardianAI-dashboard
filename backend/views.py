@@ -773,18 +773,18 @@ def api_ingest(request):
     })
 
 
-# API endpoint to get blocked apps for a child
+# API endpoint to get restricted apps for a child
 @csrf_exempt
 def get_blocked_apps(request, child_hash):
     """
-    GET endpoint to retrieve the list of blocked apps for a child.
-    Returns: JSON with blocked_apps list
+    GET endpoint to retrieve the list of restricted apps for a child.
+    Returns: JSON with restricted_apps dict (app_domain: allowed_hours)
     """
     try:
         child = Child.objects.get(child_hash=child_hash)
         return JsonResponse({
             'child_hash': child_hash,
-            'blocked_apps': child.blocked_apps or [],
+            'restricted_apps': child.restricted_apps or {},
             'status': 'success'
         })
     except Child.DoesNotExist:
@@ -794,7 +794,7 @@ def get_blocked_apps(request, child_hash):
         }, status=404)
     except Exception as e:
         import traceback
-        print(f"Error retrieving blocked apps: {str(e)}")
+        print(f"Error retrieving restricted apps: {str(e)}")
         print(traceback.format_exc())
         return JsonResponse({
             'error': str(e),
@@ -802,13 +802,13 @@ def get_blocked_apps(request, child_hash):
         }, status=500)
 
 
-# API endpoint to update blocked apps for a child (for guardian dashboard)
+# API endpoint to update restricted apps for a child (for guardian dashboard)
 @login_required
 def update_blocked_apps(request, child_hash):
     """
-    POST endpoint to update the list of blocked apps for a child.
+    POST endpoint to update the list of restricted apps for a child.
     Only accessible by guardians who have this child.
-    Expects JSON body: {"blocked_apps": ["com.example.app1", "com.example.app2"]}
+    Expects JSON body: {"restricted_apps": {"com.example.app1": 2.5, "com.example.app2": 1.0}}
     """
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -818,24 +818,32 @@ def update_blocked_apps(request, child_hash):
         child = Child.objects.get(child_hash=child_hash, guardians=request.user)
         
         data = json.loads(request.body)
-        blocked_apps = data.get('blocked_apps', [])
+        restricted_apps = data.get('restricted_apps', {})
         
-        # Validate that blocked_apps is a list
-        if not isinstance(blocked_apps, list):
+        # Validate that restricted_apps is a dict
+        if not isinstance(restricted_apps, dict):
             return JsonResponse({
-                'error': 'blocked_apps must be a list',
+                'error': 'restricted_apps must be a dictionary',
                 'status': 'error'
             }, status=400)
         
-        # Update the blocked apps
-        child.blocked_apps = blocked_apps
+        # Validate that all values are numbers
+        for app_domain, hours in restricted_apps.items():
+            if not isinstance(hours, (int, float)) or hours < 0:
+                return JsonResponse({
+                    'error': f'Invalid hours value for {app_domain}. Must be a positive number.',
+                    'status': 'error'
+                }, status=400)
+        
+        # Update the restricted apps
+        child.restricted_apps = restricted_apps
         child.save()
         
         return JsonResponse({
             'child_hash': child_hash,
-            'blocked_apps': child.blocked_apps,
+            'restricted_apps': child.restricted_apps,
             'status': 'success',
-            'message': 'Blocked apps updated successfully'
+            'message': 'Restricted apps updated successfully'
         })
     except Child.DoesNotExist:
         return JsonResponse({
@@ -849,7 +857,7 @@ def update_blocked_apps(request, child_hash):
         }, status=400)
     except Exception as e:
         import traceback
-        print(f"Error updating blocked apps: {str(e)}")
+        print(f"Error updating restricted apps: {str(e)}")
         print(traceback.format_exc())
         return JsonResponse({
             'error': str(e),

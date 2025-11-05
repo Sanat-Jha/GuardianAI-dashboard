@@ -165,7 +165,7 @@ class Child(AbstractBaseUser, PermissionsMixin):
 	date_of_birth = models.DateField(null=True, blank=True)
 	is_active = models.BooleanField(default=True)
 	date_joined = models.DateTimeField(default=timezone.now)
-	blocked_apps = models.JSONField(default=list, blank=True, help_text='List of blocked app package names')
+	restricted_apps = models.JSONField(default=dict, blank=True, help_text='Dictionary of restricted apps with time limits: {"package.name": hours}')
 
 	# Override Permission/Group relations from PermissionsMixin to avoid reverse accessor clashes
 	groups = models.ManyToManyField(

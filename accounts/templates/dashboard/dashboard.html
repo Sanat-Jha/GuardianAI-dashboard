@@ -74,7 +74,7 @@ document.body.classList.add('dashboard-page');
         {# Detailed Data Sections #}
         <div class="mt-6 space-y-6">
           {% with child_hash=child.child_hash %}
-            {% include 'dashboard/components/blocked_apps_manager.html' %}
+            {% include 'dashboard/components/restricted_apps_manager.html' %}
           {% endwith %}
           
           {% with locations=data.locations location_count=data.stats.location_count child_hash=child.child_hash %}
