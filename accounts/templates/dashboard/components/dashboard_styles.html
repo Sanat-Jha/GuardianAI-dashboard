@@ -14,6 +14,21 @@
   }
 }
 
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -153,4 +168,49 @@ body:not(.dashboard-page) .main-content {
     border-color: rgba(35, 210, 226, 0.5);
   }
 }
+
+/* Autocomplete App Suggestions */
+.app-suggestions {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-suggestions::-webkit-scrollbar-track {
+  background: rgba(15, 27, 42, 0.3);
+  border-radius: 4px;
+}
+
+.app-suggestions::-webkit-scrollbar-thumb {
+  background: #23D2E2;
+  border-radius: 4px;
+}
+
+.app-suggestions::-webkit-scrollbar-thumb:hover {
+  background: #18A4B4;
+}
+
+.app-suggestion-item:first-child {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.app-suggestion-item:last-child {
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
 </style>
+

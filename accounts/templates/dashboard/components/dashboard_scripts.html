@@ -916,4 +916,528 @@ function initializeDateInputs() {
 
 // Add smooth scroll behavior
 document.documentElement.style.scrollBehavior = 'smooth';
+
+// ============================================
+// BLOCKED APPS MANAGEMENT
+// ============================================
+
+// Autocomplete search state
+let searchTimeout = null;
+let currentSearchQuery = {};
+
+// Debounced search function
+function searchApps(childHash, query) {
+    clearTimeout(searchTimeout);
+    
+    if (!query || query.trim().length < 2) {
+        hideAppSuggestions(childHash);
+        return;
+    }
+
+    searchTimeout = setTimeout(() => {
+        performAppSearch(childHash, query.trim());
+    }, 300); // 300ms debounce
+}
+
+// Perform actual search
+async function performAppSearch(childHash, query) {
+    const dropdown = document.getElementById('appSuggestions' + childHash);
+    if (!dropdown) return;
+
+    try {
+        // Show loading state
+        dropdown.innerHTML = `
+            <div class="p-4 text-center text-textsec text-sm">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-2"></div>
+                <p>Searching apps...</p>
+            </div>
+        `;
+        dropdown.classList.remove('hidden');
+
+        const response = await fetch(`/api/apps/search/?q=${encodeURIComponent(query)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Search failed');
+        }
+
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.apps && data.apps.length > 0) {
+            renderAppSuggestions(childHash, data.apps);
+        } else {
+            dropdown.innerHTML = `
+                <div class="p-4 text-center text-textsec text-sm">
+                    <svg class="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <p>No apps found matching "${query}"</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error searching apps:', error);
+        dropdown.innerHTML = `
+            <div class="p-4 text-center text-red-400 text-sm">
+                <p>Error searching apps. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+// Render app suggestions in dropdown
+function renderAppSuggestions(childHash, apps) {
+    const dropdown = document.getElementById('appSuggestions' + childHash);
+    if (!dropdown) return;
+
+    dropdown.innerHTML = apps.map(app => `
+        <div class="app-suggestion-item p-3 hover:bg-primary/10 cursor-pointer border-b border-textsec/10 last:border-0 transition-colors"
+             onclick="selectAppSuggestion('${childHash}', '${app.domain.replace(/'/g, "\\'")}')">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 flex-shrink-0 bg-darkbg2 rounded-lg overflow-hidden flex items-center justify-center">
+                    ${app.icon ? 
+                        `<img src="${app.icon}" alt="${app.name}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<span class=\\'text-primary text-lg font-bold\\'>${app.name.charAt(0)}</span>'">` : 
+                        `<span class="text-primary text-lg font-bold">${app.name.charAt(0)}</span>`
+                    }
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-textmain font-medium text-sm truncate">${app.name}</p>
+                    <p class="text-textsec text-xs font-mono truncate">${app.domain}</p>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    dropdown.classList.remove('hidden');
+}
+
+// Select app from suggestions
+function selectAppSuggestion(childHash, domain) {
+    const input = document.getElementById('newBlockedApp' + childHash);
+    if (input) {
+        input.value = domain;
+    }
+    hideAppSuggestions(childHash);
+}
+
+// Show app suggestions (when input is focused)
+function showAppSuggestions(childHash) {
+    const input = document.getElementById('newBlockedApp' + childHash);
+    if (input && input.value.trim().length >= 2) {
+        searchApps(childHash, input.value);
+    }
+}
+
+// Hide app suggestions
+function hideAppSuggestions(childHash) {
+    const dropdown = document.getElementById('appSuggestions' + childHash);
+    if (dropdown) {
+        dropdown.classList.add('hidden');
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const suggestions = document.querySelectorAll('[id^="appSuggestions"]');
+    suggestions.forEach(dropdown => {
+        const input = dropdown.previousElementSibling?.querySelector('input');
+        if (!dropdown.contains(event.target) && event.target !== input) {
+            dropdown.classList.add('hidden');
+        }
+    });
+});
+
+// Load blocked apps for a child
+function loadBlockedApps(childHash) {
+  const blockedAppsList = document.getElementById('blockedAppsList' + childHash);
+  const blockedAppsCount = document.getElementById('blockedAppsCount' + childHash);
+  
+  if (!blockedAppsList) return;
+  
+  fetch('/api/blocked-apps/' + childHash + '/')
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success') {
+        const blockedApps = data.blocked_apps || [];
+        
+        // Update count
+        if (blockedAppsCount) {
+          blockedAppsCount.textContent = blockedApps.length;
+        }
+        
+        // Render blocked apps list
+        if (blockedApps.length === 0) {
+          blockedAppsList.innerHTML = `
+            <div class="text-center py-8">
+              <svg class="w-12 h-12 mx-auto text-textsec/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-textsec text-sm">No blocked apps yet</p>
+              <p class="text-textsec/60 text-xs mt-1">Add apps to block from the child's device</p>
+            </div>
+          `;
+        } else {
+          // Fetch app details for all blocked apps
+          fetchAppDetailsForBlocked(childHash, blockedApps);
+        }
+        
+        // Update quick add buttons visibility
+        updateQuickAddButtons(childHash, blockedApps);
+      }
+    })
+    .catch(error => {
+      console.error('Error loading blocked apps:', error);
+      blockedAppsList.innerHTML = `
+        <div class="text-center py-8">
+          <svg class="w-12 h-12 mx-auto text-red-500/50 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p class="text-red-400 text-sm">Failed to load blocked apps</p>
+        </div>
+      `;
+    });
+}
+
+// Fetch app details for blocked apps from search API
+async function fetchAppDetailsForBlocked(childHash, blockedApps) {
+  const blockedAppsList = document.getElementById('blockedAppsList' + childHash);
+  if (!blockedAppsList) return;
+  
+  // Show loading state
+  blockedAppsList.innerHTML = `
+    <div class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+      <p class="text-textsec text-sm">Loading app details...</p>
+    </div>
+  `;
+  
+  try {
+    // Fetch details for each app
+    const appDetailsPromises = blockedApps.map(async (packageName) => {
+      try {
+        const response = await fetch(`/api/apps/search/?q=${encodeURIComponent(packageName)}`);
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.apps && data.apps.length > 0) {
+          // Find exact match
+          const exactMatch = data.apps.find(app => app.domain === packageName);
+          if (exactMatch) {
+            return {
+              package_name: packageName,
+              app_name: exactMatch.name,
+              icon_url: exactMatch.icon
+            };
+          }
+        }
+        
+        // Fallback if not found
+        return {
+          package_name: packageName,
+          app_name: packageName.split('.').pop().charAt(0).toUpperCase() + packageName.split('.').pop().slice(1),
+          icon_url: null
+        };
+      } catch (error) {
+        console.error(`Error fetching details for ${packageName}:`, error);
+        return {
+          package_name: packageName,
+          app_name: packageName.split('.').pop().charAt(0).toUpperCase() + packageName.split('.').pop().slice(1),
+          icon_url: null
+        };
+      }
+    });
+    
+    const blockedAppsDetails = await Promise.all(appDetailsPromises);
+    
+    // Render the blocked apps list with fetched details
+    renderBlockedAppsList(childHash, blockedAppsDetails);
+  } catch (error) {
+    console.error('Error fetching app details:', error);
+    // Fallback to simple list
+    const fallbackDetails = blockedApps.map(packageName => ({
+      package_name: packageName,
+      app_name: packageName.split('.').pop().charAt(0).toUpperCase() + packageName.split('.').pop().slice(1),
+      icon_url: null
+    }));
+    renderBlockedAppsList(childHash, fallbackDetails);
+  }
+}
+
+// Render blocked apps list with details
+function renderBlockedAppsList(childHash, blockedAppsDetails) {
+  const blockedAppsList = document.getElementById('blockedAppsList' + childHash);
+  if (!blockedAppsList) return;
+  
+  let appsHTML = '';
+  blockedAppsDetails.forEach((appDetail, index) => {
+    const packageName = appDetail.package_name;
+    const appName = appDetail.app_name;
+    const iconUrl = appDetail.icon_url;
+    
+    const colors = [
+      'bg-red-500/20 border-red-500/40 text-red-400',
+      'bg-orange-500/20 border-orange-500/40 text-orange-400',
+      'bg-rose-500/20 border-rose-500/40 text-rose-400',
+      'bg-pink-500/20 border-pink-500/40 text-pink-400',
+    ];
+    const colorClass = colors[index % colors.length];
+    
+    // Create icon element
+    let iconElement = '';
+    if (iconUrl) {
+      iconElement = `
+        <div class="w-10 h-10 flex-shrink-0 mr-3 bg-darkbg2 rounded-lg overflow-hidden flex items-center justify-center">
+          <img src="${iconUrl}" alt="${appName}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<span class=\\'text-primary text-lg font-bold\\'>${appName.charAt(0)}</span>'">
+        </div>
+      `;
+    } else {
+      iconElement = `
+        <div class="w-10 h-10 flex-shrink-0 mr-3 bg-darkbg2 rounded-lg overflow-hidden flex items-center justify-center">
+          <span class="text-primary text-lg font-bold">${appName.charAt(0)}</span>
+        </div>
+      `;
+    }
+    
+    appsHTML += `
+      <div class="flex items-center justify-between p-4 ${colorClass} border rounded-xl hover:bg-opacity-30 transition-all group">
+        <div class="flex items-center flex-1 min-w-0">
+          ${iconElement}
+          <div class="flex-1 min-w-0">
+            <h4 class="font-semibold text-textmain text-sm mb-1">${appName}</h4>
+            <p class="text-xs text-textsec/80 font-mono truncate">${packageName}</p>
+          </div>
+        </div>
+        <button 
+          onclick="removeBlockedApp('${childHash}', '${packageName}')"
+          class="ml-3 px-3 py-2 bg-red-500/20 hover:bg-red-500 border border-red-500/40 hover:border-red-500 text-red-400 hover:text-white rounded-lg transition-all duration-200 flex items-center gap-2 text-xs font-semibold opacity-0 group-hover:opacity-100"
+          title="Remove from blocked list"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+          Unblock
+        </button>
+      </div>
+    `;
+  });
+  
+  blockedAppsList.innerHTML = appsHTML;
+}
+
+// Update quick add buttons visibility based on blocked apps
+function updateQuickAddButtons(childHash, blockedApps) {
+  const quickAddContainer = document.getElementById('quickAddButtons' + childHash);
+  if (!quickAddContainer) return;
+  
+  const buttons = quickAddContainer.querySelectorAll('.quick-block-btn');
+  buttons.forEach(button => {
+    const packageName = button.getAttribute('data-package');
+    if (blockedApps.includes(packageName)) {
+      button.classList.add('hidden-blocked');
+    } else {
+      button.classList.remove('hidden-blocked');
+    }
+  });
+}
+
+// Add a blocked app
+function addBlockedApp(childHash) {
+  const input = document.getElementById('newBlockedApp' + childHash);
+  const packageName = input.value.trim();
+  
+  if (!packageName) {
+    alert('Please enter an app package name');
+    return
+  }
+  
+  // Basic validation for package name format
+  if (!packageName.includes('.')) {
+    alert('Please enter a valid package name (e.g., com.example.app)');
+    return;
+  }
+  
+  // Get current blocked apps
+  fetch('/api/blocked-apps/' + childHash + '/')
+    .then(response => response.json())
+    .then(data => {
+      const blockedApps = data.blocked_apps || [];
+      
+      // Check if already blocked
+      if (blockedApps.includes(packageName)) {
+        alert('This app is already in the blocked list');
+        return;
+      }
+      
+      // Add to list
+      blockedApps.push(packageName);
+      
+      // Update on server
+      return updateBlockedAppsOnServer(childHash, blockedApps);
+    })
+    .then(success => {
+      if (success) {
+        input.value = ''; // Clear input
+        loadBlockedApps(childHash); // Reload list
+        showToast('App blocked successfully', 'success');
+      }
+    })
+    .catch(error => {
+      console.error('Error adding blocked app:', error);
+      alert('Failed to add blocked app. Please try again.');
+    });
+}
+
+// Quick block an app
+function quickBlockApp(childHash, packageName, appName) {
+  fetch('/api/blocked-apps/' + childHash + '/')
+    .then(response => response.json())
+    .then(data => {
+      const blockedApps = data.blocked_apps || [];
+      
+      // Check if already blocked
+      if (blockedApps.includes(packageName)) {
+        showToast(appName + ' is already blocked', 'info');
+        return;
+      }
+      
+      // Add to list
+      blockedApps.push(packageName);
+      
+      // Update on server
+      return updateBlockedAppsOnServer(childHash, blockedApps);
+    })
+    .then(success => {
+      if (success) {
+        loadBlockedApps(childHash);
+        showToast(appName + ' blocked successfully', 'success');
+      }
+    })
+    .catch(error => {
+      console.error('Error blocking app:', error);
+      showToast('Failed to block ' + appName, 'error');
+    });
+}
+
+// Remove a blocked app
+function removeBlockedApp(childHash, packageName) {
+  
+  fetch('/api/blocked-apps/' + childHash + '/')
+    .then(response => response.json())
+    .then(data => {
+      const blockedApps = data.blocked_apps || [];
+      
+      // Remove from list
+      const updatedApps = blockedApps.filter(app => app !== packageName);
+      
+      // Update on server
+      return updateBlockedAppsOnServer(childHash, updatedApps);
+    })
+    .then(success => {
+      if (success) {
+        loadBlockedApps(childHash);
+        showToast('App unblocked successfully', 'success');
+      }
+    })
+    .catch(error => {
+      console.error('Error removing blocked app:', error);
+      alert('Failed to unblock app. Please try again.');
+    });
+}
+
+// Update blocked apps on server
+function updateBlockedAppsOnServer(childHash, blockedApps) {
+  return fetch('/api/blocked-apps/' + childHash + '/update/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({ blocked_apps: blockedApps })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'success') {
+      return true;
+    } else {
+      throw new Error(data.error || 'Failed to update');
+    }
+  });
+}
+
+// Helper function to get app name from package name
+function getAppNameFromPackage(packageName) {
+  const appNames = {
+    'com.facebook.katana': 'Facebook',
+    'com.instagram.android': 'Instagram',
+    'com.whatsapp': 'WhatsApp',
+    'com.snapchat.android': 'Snapchat',
+    'com.zhiliaoapp.musically': 'TikTok',
+    'com.twitter.android': 'Twitter/X',
+    'com.google.android.youtube': 'YouTube',
+    'com.netflix.mediaclient': 'Netflix',
+    'com.spotify.music': 'Spotify',
+    'com.reddit.frontpage': 'Reddit',
+    'com.discord': 'Discord',
+    'org.telegram.messenger': 'Telegram',
+    'com.android.chrome': 'Chrome',
+  };
+  
+  if (appNames[packageName]) {
+    return appNames[packageName];
+  }
+  
+  // Extract name from package (e.g., com.example.myapp -> Myapp)
+  const parts = packageName.split('.');
+  const lastPart = parts[parts.length - 1];
+  return lastPart.charAt(0).toUpperCase() + lastPart.slice(1);
+}
+
+// Helper function to show toast notifications
+function showToast(message, type = 'info') {
+  const colors = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-cyan-500'
+  };
+  
+  const toast = document.createElement('div');
+  toast.className = `fixed bottom-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in-up`;
+  toast.textContent = message;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    toast.style.transition = 'all 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Get CSRF token from cookies
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+// Load blocked apps when selecting a child
+const originalSelectChildForBlocked = window.selectChild;
+window.selectChild = function(childHash) {
+  originalSelectChildForBlocked(childHash);
+  // Load blocked apps after a short delay to ensure dashboard is visible
+  setTimeout(() => loadBlockedApps(childHash), 300);
+}
 </script>

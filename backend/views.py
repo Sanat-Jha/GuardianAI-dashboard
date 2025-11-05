@@ -771,3 +771,135 @@ def api_ingest(request):
         'location': location_result or 'not provided',
         'site_access': site_access_result or 'not provided',
     })
+
+
+# API endpoint to get blocked apps for a child
+@csrf_exempt
+def get_blocked_apps(request, child_hash):
+    """
+    GET endpoint to retrieve the list of blocked apps for a child.
+    Returns: JSON with blocked_apps list
+    """
+    try:
+        child = Child.objects.get(child_hash=child_hash)
+        return JsonResponse({
+            'child_hash': child_hash,
+            'blocked_apps': child.blocked_apps or [],
+            'status': 'success'
+        })
+    except Child.DoesNotExist:
+        return JsonResponse({
+            'error': 'Child not found',
+            'status': 'error'
+        }, status=404)
+    except Exception as e:
+        import traceback
+        print(f"Error retrieving blocked apps: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error'
+        }, status=500)
+
+
+# API endpoint to update blocked apps for a child (for guardian dashboard)
+@login_required
+def update_blocked_apps(request, child_hash):
+    """
+    POST endpoint to update the list of blocked apps for a child.
+    Only accessible by guardians who have this child.
+    Expects JSON body: {"blocked_apps": ["com.example.app1", "com.example.app2"]}
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        import json
+        child = Child.objects.get(child_hash=child_hash, guardians=request.user)
+        
+        data = json.loads(request.body)
+        blocked_apps = data.get('blocked_apps', [])
+        
+        # Validate that blocked_apps is a list
+        if not isinstance(blocked_apps, list):
+            return JsonResponse({
+                'error': 'blocked_apps must be a list',
+                'status': 'error'
+            }, status=400)
+        
+        # Update the blocked apps
+        child.blocked_apps = blocked_apps
+        child.save()
+        
+        return JsonResponse({
+            'child_hash': child_hash,
+            'blocked_apps': child.blocked_apps,
+            'status': 'success',
+            'message': 'Blocked apps updated successfully'
+        })
+    except Child.DoesNotExist:
+        return JsonResponse({
+            'error': 'Child not found or you do not have permission',
+            'status': 'error'
+        }, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'error': 'Invalid JSON in request body',
+            'status': 'error'
+        }, status=400)
+    except Exception as e:
+        import traceback
+        print(f"Error updating blocked apps: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error'
+        }, status=500)
+
+
+# API endpoint to search available apps
+@login_required
+def search_available_apps(request):
+    """
+    GET endpoint to search/list all available apps from the App model.
+    Query parameter: q (search query, optional)
+    Returns: JSON with list of apps (name, domain, icon)
+    """
+    try:
+        from backend.models import App
+        
+        search_query = request.GET.get('q', '').strip()
+        
+        if search_query:
+            # Search by app name or domain
+            apps = App.objects.filter(
+                app_name__icontains=search_query
+            ) | App.objects.filter(
+                domain__icontains=search_query
+            )
+        else:
+            # Return all apps (limit to 100 for performance)
+            apps = App.objects.all()[:100]
+        
+        # Format response
+        apps_list = []
+        for app in apps:
+            apps_list.append({
+                'name': app.app_name,
+                'domain': app.domain,
+                'icon': app.icon_url or ''
+            })
+        
+        return JsonResponse({
+            'apps': apps_list,
+            'count': len(apps_list),
+            'status': 'success'
+        })
+    except Exception as e:
+        import traceback
+        print(f"Error searching apps: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error'
+        }, status=500)
