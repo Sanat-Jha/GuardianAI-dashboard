@@ -897,6 +897,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const childHash = list.id.replace('restrictedAppsList', '');
     if (childHash) {
       loadRestrictedApps(childHash);
+      // Initialize restrict button state
+      updateRestrictButtonState(childHash);
     }
   });
 });
@@ -1192,9 +1194,12 @@ function renderRestrictedAppsList(childHash, restrictedAppsDetails) {
     const iconUrl = appDetail.icon_url;
     const hours = appDetail.hours;
     
+    // Check if blocked (0 hours)
+    const isBlocked = hours === 0;
+    
     // Format hours display
-    const hoursDisplay = hours === 0 ? 'Blocked' : `${hours}h/day`;
-    const hoursColor = hours === 0 ? 'text-red-400' : 'text-amber-400';
+    const hoursDisplay = isBlocked ? 'Blocked' : `${hours}h/day`;
+    const hoursColor = isBlocked ? 'text-gray-400' : 'text-amber-400';
     
     const colors = [
       'bg-amber-500/20 border-amber-500/40',
@@ -1202,19 +1207,19 @@ function renderRestrictedAppsList(childHash, restrictedAppsDetails) {
       'bg-yellow-500/20 border-yellow-500/40',
       'bg-lime-500/20 border-lime-500/40',
     ];
-    const colorClass = colors[index % colors.length];
+    const colorClass = isBlocked ? 'bg-gray-500/20 border-gray-500/40' : colors[index % colors.length];
     
     // Create icon element
     let iconElement = '';
     if (iconUrl) {
       iconElement = `
-        <div class="w-10 h-10 flex-shrink-0 mr-3 bg-darkbg2 rounded-lg overflow-hidden flex items-center justify-center">
+        <div class="w-10 h-10 flex-shrink-0 mr-3 bg-darkbg2 rounded-lg overflow-hidden flex items-center justify-center ${isBlocked ? 'opacity-50 grayscale' : ''}">
           <img src="${iconUrl}" alt="${appName}" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML='<span class=\\'text-primary text-lg font-bold\\'>${appName.charAt(0)}</span>'">
         </div>
       `;
     } else {
       iconElement = `
-        <div class="w-10 h-10 flex-shrink-0 mr-3 bg-darkbg2 rounded-lg overflow-hidden flex items-center justify-center">
+        <div class="w-10 h-10 flex-shrink-0 mr-3 bg-darkbg2 rounded-lg overflow-hidden flex items-center justify-center ${isBlocked ? 'opacity-50' : ''}">
           <span class="text-primary text-lg font-bold">${appName.charAt(0)}</span>
         </div>
       `;
@@ -1226,25 +1231,38 @@ function renderRestrictedAppsList(childHash, restrictedAppsDetails) {
           ${iconElement}
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <h4 class="font-semibold text-textmain text-sm">${appName}</h4>
+              <h4 class="font-semibold ${isBlocked ? 'text-gray-400' : 'text-textmain'} text-sm">${appName}</h4>
               <span class="text-xs ${hoursColor} font-bold px-2 py-0.5 bg-black/30 rounded">${hoursDisplay}</span>
             </div>
-            <p class="text-xs text-textsec/80 font-mono truncate">${packageName}</p>
+            <p class="text-xs ${isBlocked ? 'text-gray-500' : 'text-textsec/80'} font-mono truncate">${packageName}</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <input 
-            type="number"
-            id="editHours_${packageName.replace(/\./g, '_')}_${childHash}"
-            value="${hours}"
-            min="0"
-            step="0.5"
-            class="w-20 px-2 py-1 text-sm bg-darkbg1 border border-textsec/20 rounded text-textmain opacity-0 group-hover:opacity-100 transition-opacity"
-            onchange="updateAppHours('${childHash}', '${packageName}', this.value)"
-          />
+          ${isBlocked ? `
+            <button 
+              onclick="unblockApp('${childHash}', '${packageName}')"
+              class="px-4 py-2 bg-green-500/20 hover:bg-green-500 border border-green-500/40 hover:border-green-500 text-green-400 hover:text-white rounded-lg transition-all duration-200 flex items-center gap-2 text-xs font-semibold"
+              title="Unblock app"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
+              </svg>
+              Unblock
+            </button>
+          ` : `
+            <input 
+              type="number"
+              id="editHours_${packageName.replace(/\./g, '_')}_${childHash}"
+              value="${hours}"
+              min="0"
+              step="0.5"
+              class="w-20 px-2 py-1 text-sm bg-darkbg1 border border-textsec/20 rounded text-textmain opacity-0 group-hover:opacity-100 transition-opacity"
+              onchange="updateAppHours('${childHash}', '${packageName}', this.value)"
+            />
+          `}
           <button 
             onclick="removeRestrictedApp('${childHash}', '${packageName}')"
-            class="px-3 py-2 bg-red-500/20 hover:bg-red-500 border border-red-500/40 hover:border-red-500 text-red-400 hover:text-white rounded-lg transition-all duration-200 flex items-center gap-2 text-xs font-semibold opacity-0 group-hover:opacity-100"
+            class="px-3 py-2 bg-red-500/20 hover:bg-red-500 border border-red-500/40 hover:border-red-500 text-red-400 hover:text-white rounded-lg transition-all duration-200 flex items-center gap-2 text-xs font-semibold ${isBlocked ? '' : 'opacity-0 group-hover:opacity-100'}"
             title="Remove restriction"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1274,6 +1292,30 @@ function updateQuickRestrictButtons(childHash, restrictedDomains) {
       button.classList.remove('hidden-restricted');
     }
   });
+}
+
+// Update restrict button state based on hours value
+function updateRestrictButtonState(childHash) {
+  const hoursInput = document.getElementById('newAppHours' + childHash);
+  const restrictBtn = document.getElementById('restrictBtn' + childHash);
+  const restrictBtnIcon = document.getElementById('restrictBtnIcon' + childHash);
+  const restrictBtnText = document.getElementById('restrictBtnText' + childHash);
+  
+  if (!hoursInput || !restrictBtn || !restrictBtnIcon || !restrictBtnText) return;
+  
+  const hours = parseFloat(hoursInput.value);
+  
+  if (hours === 0) {
+    // Change to Block mode (red)
+    restrictBtn.className = 'px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-lg transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-red-500/30 whitespace-nowrap';
+    restrictBtnIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>';
+    restrictBtnText.textContent = 'Block';
+  } else {
+    // Change to Restrict mode (amber)
+    restrictBtn.className = 'px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-lg transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-amber-500/30 whitespace-nowrap';
+    restrictBtnIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
+    restrictBtnText.textContent = 'Restrict';
+  }
 }
 
 // Add a restricted app
@@ -1394,12 +1436,34 @@ function updateAppHours(childHash, packageName, newHours) {
     });
 }
 
+// Unblock an app (set hours to 1)
+function unblockApp(childHash, packageName) {
+  fetch('/api/blocked-apps/' + childHash + '/')
+    .then(response => response.json())
+    .then(data => {
+      const restrictedApps = data.restricted_apps || {};
+      
+      // Set hours to 1
+      restrictedApps[packageName] = 1;
+      
+      // Update on server
+      return updateRestrictedAppsOnServer(childHash, restrictedApps);
+    })
+    .then(success => {
+      if (success) {
+        loadRestrictedApps(childHash);
+        showToast('App unblocked - set to 1 hour/day', 'success');
+      }
+    })
+    .catch(error => {
+      console.error('Error unblocking app:', error);
+      showToast('Failed to unblock app', 'error');
+    });
+}
+
 // Remove a restricted app
 function removeRestrictedApp(childHash, packageName) {
-  if (!confirm('Are you sure you want to remove this restriction?')) {
-    return;
-  }
-  
+
   fetch('/api/blocked-apps/' + childHash + '/')
     .then(response => response.json())
     .then(data => {
