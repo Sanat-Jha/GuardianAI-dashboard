@@ -1,0 +1,41 @@
+<div class="glass-card flex flex-col" style="height: 428px;">
+  <div class="flex items-center justify-between mb-6 flex-shrink-0">
+    <div>
+      <h3 class="text-lg font-semibold text-textmain">Application Analytics</h3>
+      <p class="text-xs text-textsec mt-1">All applications used - sorted by usage time</p>
+    </div>
+    <div class="text-right">
+      <p class="text-xs text-textsec">Total Apps</p>
+      <p class="text-sm font-semibold text-primary" id="totalAppsCount{{ child_hash }}">-</p>
+    </div>
+  </div>
+  
+  <div id="appAnalytics{{ child_hash }}" class="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
+    <!-- Will be populated by JavaScript -->
+    <div class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+        <p class="text-sm text-textsec">Loading analytics...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Custom scrollbar matching base.html theme */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(15, 27, 42, 0.5);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #23D2E2, #18A4B4);
+    border-radius: 4px;
+    border: 2px solid rgba(15, 27, 42, 0.5);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #8EF6FF, #23D2E2);
+  }
+</style>

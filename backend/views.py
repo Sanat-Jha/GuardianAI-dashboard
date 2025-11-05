@@ -41,17 +41,36 @@ def dashboard_view(request):
         # Get app-wise breakdown
         app_breakdown = {}
         for st in st_qs:
-            if st.app_wise_data:
-                try:
-                    apps_data = json.loads(st.app_wise_data)
-                    for app, time in apps_data.items():
-                        app_breakdown[app] = app_breakdown.get(app, 0) + int(time)
-                except:
-                    pass
+            # Use the new helper method to get app breakdown
+            breakdown = st.get_app_breakdown()
+            for app_domain, time in breakdown.items():
+                app_breakdown[app_domain] = app_breakdown.get(app_domain, 0) + time
         
-        # Get top 5 apps
-        sorted_apps = sorted(app_breakdown.items(), key=lambda x: x[1], reverse=True)[:5]
-        top_apps = [{'name': app[0], 'time': app[1], 'hours': round(app[1]/3600, 1)} for app in sorted_apps]
+        # Get all apps sorted by usage time (not limited to top 5)
+        sorted_apps = sorted(app_breakdown.items(), key=lambda x: x[1], reverse=True)
+        
+        # Fetch App objects to get names and icons
+        from backend.models import App
+        top_apps = []
+        for app_domain, time_seconds in sorted_apps:
+            try:
+                app = App.objects.get(domain=app_domain)
+                top_apps.append({
+                    'domain': app_domain,
+                    'name': app.app_name,
+                    'icon_url': app.icon_url,
+                    'time': time_seconds,
+                    'hours': round(time_seconds/3600, 1)
+                })
+            except App.DoesNotExist:
+                # Fallback to domain name if App not found
+                top_apps.append({
+                    'domain': app_domain,
+                    'name': app_domain.split('.')[-1].title(),
+                    'icon_url': '',
+                    'time': time_seconds,
+                    'hours': round(time_seconds/3600, 1)
+                })
         
         # Location data
         locations = c.location_history.order_by('-timestamp')[:20]
@@ -213,38 +232,84 @@ def child_chart_data(request, child_hash):
         # Prepare data for pie chart (app breakdown)
         app_breakdown = {}
         for st in st_qs:
-            if st.app_wise_data:
-                try:
-                    # app_wise_data is already a dict (JSONField auto-deserializes)
-                    apps_data = st.app_wise_data
-                    
-                    # Handle nested structure: {app: {hour: seconds, ...}, ...}
-                    for app, time_data in apps_data.items():
-                        if isinstance(time_data, dict):
-                            # Sum all hours for this app
-                            total_time = sum(int(v) for v in time_data.values())
-                            app_breakdown[app] = app_breakdown.get(app, 0) + total_time
-                        else:
-                            # If it's just a number
-                            app_breakdown[app] = app_breakdown.get(app, 0) + float(time_data)
-                except Exception as e:
-                    # Skip if parsing fails
-                    print(f"Error parsing app data: {e}")
-                    continue
+            # Use the new helper method to get app breakdown
+            breakdown = st.get_app_breakdown()
+            for app_domain, time in breakdown.items():
+                app_breakdown[app_domain] = app_breakdown.get(app_domain, 0) + time
         
-        # Get top 5 apps
-        sorted_apps = sorted(app_breakdown.items(), key=lambda x: x[1], reverse=True)[:5]
-        app_labels = [app[0] for app in sorted_apps] if sorted_apps else ['No Data']
-        app_times = [round(app[1] / 3600, 2) for app in sorted_apps] if sorted_apps else [0]  # Convert to hours
+        # Get all apps sorted by usage time
+        sorted_apps_all = sorted(app_breakdown.items(), key=lambda x: x[1], reverse=True)
+        
+        # Get top 5 apps for bar chart
+        sorted_apps_top5 = sorted_apps_all[:5] if len(sorted_apps_all) > 5 else sorted_apps_all
+        
+        # Fetch App objects to get names and icons
+        from backend.models import App
+        
+        # Process TOP 5 apps for bar chart
+        top5_labels = []
+        top5_times = []
+        top5_icons = []
+        top5_domains = []
+        
+        if sorted_apps_top5:
+            for app_domain, time_seconds in sorted_apps_top5:
+                try:
+                    app = App.objects.get(domain=app_domain)
+                    top5_labels.append(app.app_name)
+                    top5_icons.append(app.icon_url)
+                except App.DoesNotExist:
+                    # Fallback to domain name if App not found
+                    top5_labels.append(app_domain.split('.')[-1].title())
+                    top5_icons.append('')
+                top5_domains.append(app_domain)
+                top5_times.append(round(time_seconds / 3600, 2))  # Convert to hours
+        else:
+            top5_labels = ['No Data']
+            top5_times = [0]
+            top5_icons = ['']
+            top5_domains = ['']
+        
+        # Process ALL apps for app list
+        all_labels = []
+        all_times = []
+        all_icons = []
+        all_domains = []
+        
+        if sorted_apps_all:
+            for app_domain, time_seconds in sorted_apps_all:
+                try:
+                    app = App.objects.get(domain=app_domain)
+                    all_labels.append(app.app_name)
+                    all_icons.append(app.icon_url)
+                except App.DoesNotExist:
+                    # Fallback to domain name if App not found
+                    all_labels.append(app_domain.split('.')[-1].title())
+                    all_icons.append('')
+                all_domains.append(app_domain)
+                all_times.append(round(time_seconds / 3600, 2))  # Convert to hours
+        else:
+            all_labels = ['No Data']
+            all_times = [0]
+            all_icons = ['']
+            all_domains = ['']
         
         return JsonResponse({
             'line_chart': {
                 'labels': dates if dates else ['No Data'],
                 'data': screen_times if screen_times else [0],
             },
-            'pie_chart': {
-                'labels': app_labels,
-                'data': app_times,
+            'bar_chart': {
+                'labels': top5_labels,
+                'data': top5_times,
+                'icons': top5_icons,
+                'domains': top5_domains,
+            },
+            'app_list': {
+                'labels': all_labels,
+                'data': all_times,
+                'icons': all_icons,
+                'domains': all_domains,
             }
         })
     except Child.DoesNotExist:

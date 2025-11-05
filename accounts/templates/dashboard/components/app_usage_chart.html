@@ -1,5 +1,5 @@
-<div class="glass-card">
-  <div class="flex items-center justify-between mb-6">
+<div class="glass-card flex flex-col" style="height: 428px;">
+  <div class="flex items-center justify-between mb-6 flex-shrink-0">
     <div>
       <h3 class="text-lg font-semibold text-textmain">App Usage Distribution</h3>
       <p class="text-xs text-textsec mt-1">Top 5 most used applications</p>
@@ -9,7 +9,7 @@
       <p class="text-sm font-semibold text-primary" id="totalAppTime{{ child_hash }}">-</p>
     </div>
   </div>
-  <div class="chart-container relative" style="height: 320px;">
+  <div class="chart-container relative flex-1">
     <canvas id="barChart{{ child_hash }}"></canvas>
   </div>
 </div>

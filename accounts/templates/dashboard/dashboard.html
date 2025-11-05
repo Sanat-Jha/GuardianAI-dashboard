@@ -68,7 +68,7 @@ document.body.classList.add('dashboard-page');
             {% include 'dashboard/components/app_usage_chart.html' %}
           {% endwith %}
           {% with top_apps=data.top_apps child_hash=child.child_hash %}
-            {% include 'dashboard/components/top_apps_list.html' %}
+            {% include 'dashboard/components/all_apps_list.html' %}
           {% endwith %}
         </div>
         {# Detailed Data Sections #}
