@@ -6,6 +6,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from PIL import Image
 import os
+import io
+from django.core.files.base import ContentFile
 
 from .models import Guardian, Child
 
@@ -111,21 +113,45 @@ def upload_child_profile_image(request, child_hash):
 				'message': 'Invalid image file.'
 			}, status=400)
 		
-		# Delete old profile image if exists
+		# Delete old profile image if exists (best-effort)
 		if child.profile_image:
-			old_image_path = child.profile_image.path
-			if os.path.exists(old_image_path):
-				os.remove(old_image_path)
-		
-		# Save new profile image
-		child.profile_image = profile_image
-		child.save()
-		
-		return JsonResponse({
-			'status': 'success',
-			'message': 'Profile image updated successfully.',
-			'image_url': child.profile_image.url
-		})
+			try:
+				old_image_path = child.profile_image.path
+				if os.path.exists(old_image_path):
+					os.remove(old_image_path)
+			except Exception:
+				pass
+
+		# Convert uploaded image to WEBP and save as <child_hash>.webp
+		try:
+			img = Image.open(profile_image)
+			# Convert image mode appropriately for WEBP
+			if img.mode in ("RGBA", "LA") or (img.mode == "P" and 'transparency' in img.info):
+				converted = img.convert("RGBA")
+			else:
+				converted = img.convert("RGB")
+
+			buf = io.BytesIO()
+			# quality 85 is a reasonable default; method uses libwebp encoding when available
+			converted.save(buf, format='WEBP', quality=85, method=6)
+			buf.seek(0)
+
+			filename = f"{child.child_hash}.webp"
+			content_file = ContentFile(buf.read())
+			# Use the ImageField's save method so Django storage handles file placement
+			child.profile_image.save(filename, content_file, save=False)
+			child.save()
+
+			return JsonResponse({
+				'status': 'success',
+				'message': 'Profile image updated successfully.',
+				'image_url': child.profile_image.url
+			})
+		except Exception as e:
+			return JsonResponse({
+				'status': 'error',
+				'message': f'Image conversion failed: {str(e)}'
+			}, status=500)
 		
 	except Exception as e:
 		return JsonResponse({

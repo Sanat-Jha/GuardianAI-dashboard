@@ -913,40 +913,7 @@ def search_available_apps(request):
         }, status=500)
 
 
-# API endpoint to get child profile image
-@csrf_exempt
-def get_child_profile_image(request, child_hash):
-    """
-    GET endpoint to retrieve the profile image URL for a child.
-    Returns: JSON with profile_image_url (or null if not set)
-    """
-    try:
-        child = Child.objects.get(child_hash=child_hash)
-        
-        profile_image_url = None
-        if child.profile_image:
-            # Build absolute URL
-            profile_image_url = request.build_absolute_uri(child.profile_image.url)
-        
-        return JsonResponse({
-            'child_hash': child_hash,
-            'profile_image_url': profile_image_url,
-            'has_profile_image': bool(child.profile_image),
-            'status': 'success'
-        })
-    except Child.DoesNotExist:
-        return JsonResponse({
-            'error': 'Child not found',
-            'status': 'error'
-        }, status=404)
-    except Exception as e:
-        import traceback
-        print(f"Error retrieving profile image: {str(e)}")
-        print(traceback.format_exc())
-        return JsonResponse({
-            'error': str(e),
-            'status': 'error'
-        }, status=500)
+
 
 
 # API endpoint for AI insights
