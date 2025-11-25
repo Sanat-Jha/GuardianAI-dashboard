@@ -10,6 +10,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <!-- Marked.js for Markdown Rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -88,6 +90,157 @@
       right: 0;
       z-index: 100;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    }
+    /* AI Modal Overlay - highest z-index for proper overlay */
+    .ai-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      padding: 1rem;
+    }
+    .ai-modal-content {
+      background: rgba(15, 27, 42, 0.98);
+      border: 1px solid rgba(35, 210, 226, 0.3);
+      border-radius: 1rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(35, 210, 226, 0.15);
+      max-width: 48rem;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    /* Markdown styling for AI responses */
+    .markdown-content {
+      line-height: 1.7;
+    }
+    .markdown-content h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #23D2E2;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid rgba(35, 210, 226, 0.3);
+      padding-bottom: 0.5rem;
+    }
+    .markdown-content h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #8EF6FF;
+      margin-top: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .markdown-content h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #8EF6FF;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .markdown-content p {
+      margin-bottom: 1rem;
+      color: #FFFFFF;
+    }
+    .markdown-content ul, .markdown-content ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+      color: #FFFFFF;
+    }
+    .markdown-content li {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+    .markdown-content ul li {
+      list-style-type: disc;
+    }
+    .markdown-content ol li {
+      list-style-type: decimal;
+    }
+    .markdown-content strong {
+      font-weight: 700;
+      color: #23D2E2;
+    }
+    .markdown-content em {
+      font-style: italic;
+      color: #A9B3C1;
+    }
+    .markdown-content code {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.25rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #8EF6FF;
+    }
+    .markdown-content pre {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+      border: 1px solid rgba(35, 210, 226, 0.2);
+    }
+    .markdown-content pre code {
+      background: none;
+      padding: 0;
+      color: #FFFFFF;
+    }
+    .markdown-content blockquote {
+      border-left: 4px solid #23D2E2;
+      padding-left: 1rem;
+      margin-left: 0;
+      margin-bottom: 1rem;
+      color: #A9B3C1;
+      font-style: italic;
+    }
+    .markdown-content a {
+      color: #23D2E2;
+      text-decoration: underline;
+    }
+    .markdown-content a:hover {
+      color: #8EF6FF;
+    }
+    .markdown-content hr {
+      border: none;
+      border-top: 1px solid rgba(35, 210, 226, 0.3);
+      margin: 1.5rem 0;
+    }
+    .markdown-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+    }
+    .markdown-content th, .markdown-content td {
+      border: 1px solid rgba(35, 210, 226, 0.2);
+      padding: 0.5rem;
+      text-align: left;
+    }
+    .markdown-content th {
+      background: rgba(35, 210, 226, 0.1);
+      font-weight: 600;
+      color: #23D2E2;
+    }
+    /* Custom scrollbar for AI response */
+    .ai-response-scroll::-webkit-scrollbar {
+      width: 10px;
+    }
+    .ai-response-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 5px;
+    }
+    .ai-response-scroll::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #23D2E2, #18A4B4);
+      border-radius: 5px;
+      border: 2px solid rgba(0, 0, 0, 0.3);
+    }
+    .ai-response-scroll::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #8EF6FF, #23D2E2);
     }
     .site-footer {
       background: rgba(15, 27, 42, 0.95);

@@ -1667,4 +1667,204 @@ function uploadProfileImage(childHash, fileInput) {
     fileInput.value = ''; // Clear the input for future uploads
   });
 }
+
+// AI Insights modal helpers
+function openAIInsightsModal(childHash, childName) {
+  const container = document.getElementById('aiModalContainer');
+  if (!container) {
+    console.error('AI modal container not found');
+    return;
+  }
+  
+  // Create modal HTML
+  const modalHTML = `
+    <div id="aiInsightsModal${childHash}" class="ai-modal-overlay" onclick="if(event.target === this) closeAIInsightsModal('${childHash}')">
+      <div class="ai-modal-content p-6 relative" onclick="event.stopPropagation()">
+        <button type="button" onclick="closeAIInsightsModal('${childHash}')" class="absolute top-4 right-4 text-textsec hover:text-white text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-all z-10">×</button>
+        
+        <!-- Input Section -->
+        <div id="aiInputSection${childHash}">
+          <h3 class="text-xl font-bold text-textmain mb-1">AI Insights</h3>
+          <p class="text-sm text-textsec mb-6">${childName}</p>
+          
+          <div class="space-y-4">
+            <input id="aiInput${childHash}" type="text" placeholder="Ask AI questions about ${childName}'s activity..." class="w-full px-4 py-3 rounded-lg bg-black/40 border border-primary/30 text-textmain placeholder-textsec focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="fillAIPreset('${childHash}','Summarise')" class="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 border border-primary/30 hover:border-primary/50 transition-all">
+                📊 Summarise
+              </button>
+              <button type="button" onclick="fillAIPreset('${childHash}','Improvement ideas')" class="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 border border-primary/30 hover:border-primary/50 transition-all">
+                💡 Improvement ideas
+              </button>
+              <button type="button" onclick="fillAIPreset('${childHash}','Explain recent activity')" class="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 border border-primary/30 hover:border-primary/50 transition-all">
+                🔍 Explain recent activity
+              </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <div id="aiStatus${childHash}" class="text-sm text-textsec flex-1"></div>
+              <button type="button" onclick="sendAIQuestion('${childHash}')" class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-darkbg1 rounded-lg font-semibold hover:bg-secondary transition-all shadow-lg hover:shadow-primary/30">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Response Section (hidden initially) -->
+        <div id="aiResponseSection${childHash}" class="hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-textmain">AI Analysis</h3>
+            <button type="button" onclick="resetAIModal('${childHash}')" class="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 border border-primary/30 hover:border-primary/50 transition-all">
+              ↺ New Question
+            </button>
+          </div>
+          <div id="aiResponse${childHash}" class="p-4 rounded-lg bg-black/30 border border-primary/10 markdown-content ai-response-scroll" style="max-height: calc(90vh - 150px); overflow-y: auto;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.innerHTML = modalHTML;
+  
+  // Focus input after a brief delay
+  setTimeout(() => {
+    const input = document.getElementById(`aiInput${childHash}`);
+    if (input) input.focus();
+  }, 100);
+}
+
+function closeAIInsightsModal(childHash) {
+  const container = document.getElementById('aiModalContainer');
+  if (container) {
+    container.innerHTML = '';
+  }
+}
+
+function fillAIPreset(childHash, text) {
+  const input = document.getElementById('aiInput' + childHash);
+  if (!input) return;
+  input.value = text;
+  input.focus();
+}
+
+async function sendAIQuestion(childHash) {
+  const input = document.getElementById('aiInput' + childHash);
+  const statusEl = document.getElementById('aiStatus' + childHash);
+  const responseEl = document.getElementById('aiResponse' + childHash);
+  const inputSection = document.getElementById('aiInputSection' + childHash);
+  const responseSection = document.getElementById('aiResponseSection' + childHash);
+  const sendBtn = event?.target?.closest('button');
+  
+  if (!input) return;
+  const question = input.value.trim();
+  if (!question) {
+    showToast('Please enter a question', 'info');
+    return;
+  }
+  
+  // Disable send button and show loading state
+  if (sendBtn) {
+    sendBtn.disabled = true;
+    sendBtn.classList.remove('bg-primary', 'hover:bg-secondary');
+    sendBtn.classList.add('bg-gray-500', 'cursor-not-allowed', 'opacity-60');
+    sendBtn.innerHTML = `
+      <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Analysing...
+    `;
+  }
+  
+  if (responseEl) {
+    responseEl.innerHTML = '<div class="flex items-center gap-2 text-textsec"><svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Analyzing data...</div>';
+  }
+
+  try {
+    const res = await fetch(`/api/child/${childHash}/ai-ask/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({ question })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.status === 'success') {
+      // Hide input section and show response section
+      if (inputSection) inputSection.classList.add('hidden');
+      if (responseSection) responseSection.classList.remove('hidden');
+      
+      if (responseEl) {
+        // Parse markdown to HTML using marked.js
+        const markdownText = data.answer || data.result || 'No answer returned';
+        if (typeof marked !== 'undefined') {
+          responseEl.innerHTML = marked.parse(markdownText);
+        } else {
+          // Fallback if marked.js not loaded
+          responseEl.textContent = markdownText;
+        }
+      }
+      showToast('AI analysis complete!', 'success');
+    } else {
+      if (responseEl) {
+        responseEl.innerHTML = `<p class="text-red-400">⚠️ ${data.message || 'AI request failed'}</p>`;
+      }
+      showToast(data.message || 'AI request failed', 'error');
+      
+      // Re-enable button on error
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('bg-gray-500', 'cursor-not-allowed', 'opacity-60');
+        sendBtn.classList.add('bg-primary', 'hover:bg-secondary');
+        sendBtn.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+          Send
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('AI request error:', err);
+    if (responseEl) {
+      responseEl.innerHTML = '<p class="text-red-400">⚠️ An error occurred sending the request.</p>';
+    }
+    showToast('Network error occurred', 'error');
+    
+    // Re-enable button on error
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.classList.remove('bg-gray-500', 'cursor-not-allowed', 'opacity-60');
+      sendBtn.classList.add('bg-primary', 'hover:bg-secondary');
+      sendBtn.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+        Send
+      `;
+    }
+  }
+}
+
+// Reset AI modal to input state
+function resetAIModal(childHash) {
+  const inputSection = document.getElementById('aiInputSection' + childHash);
+  const responseSection = document.getElementById('aiResponseSection' + childHash);
+  const input = document.getElementById('aiInput' + childHash);
+  const responseEl = document.getElementById('aiResponse' + childHash);
+  
+  if (inputSection) inputSection.classList.remove('hidden');
+  if (responseSection) responseSection.classList.add('hidden');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  if (responseEl) responseEl.innerHTML = '';
+}
 </script>

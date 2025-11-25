@@ -947,3 +947,174 @@ def get_child_profile_image(request, child_hash):
             'error': str(e),
             'status': 'error'
         }, status=500)
+
+
+# API endpoint for AI insights
+@csrf_exempt
+@login_required
+def ai_insights(request, child_hash):
+    """
+    POST endpoint to get AI insights for a child.
+    Expects JSON body: {"question": "Summarise"}
+    Returns: JSON with AI-generated insights
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            'error': 'Method not allowed',
+            'status': 'error'
+        }, status=405)
+    
+    try:
+        # Verify child exists and belongs to guardian
+        child = Child.objects.get(child_hash=child_hash)
+        
+        # Check if the logged-in guardian has this child
+        if not request.user.children.filter(child_hash=child_hash).exists():
+            return JsonResponse({
+                'error': 'You do not have permission to access this child.',
+                'status': 'error'
+            }, status=403)
+        
+        # Parse request body
+        try:
+            payload = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'error': 'Invalid JSON payload',
+                'status': 'error'
+            }, status=400)
+        
+        question = payload.get('question', '').strip()
+        if not question:
+            return JsonResponse({
+                'error': 'Question is required',
+                'status': 'error'
+            }, status=400)
+        
+        # Gather child data for context
+        from backend.models import ScreenTime, LocationHistory, SiteAccessLog
+        from datetime import datetime, timedelta
+        
+        # Get data from last 30 days
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        
+        # Screen time data
+        screen_times = ScreenTime.objects.filter(
+            child=child,
+            date__gte=thirty_days_ago.date()
+        ).order_by('-date')
+        
+        total_screen_time_seconds = sum([st.total_screen_time for st in screen_times])
+        total_screen_time_hours = total_screen_time_seconds / 3600
+        avg_daily_hours = total_screen_time_hours / 30 if screen_times.exists() else 0
+        
+        # App usage breakdown
+        app_breakdown = {}
+        for st in screen_times:
+            breakdown = st.get_app_breakdown()
+            for app_domain, seconds in breakdown.items():
+                app_breakdown[app_domain] = app_breakdown.get(app_domain, 0) + seconds
+        
+        # Convert to hours and get top apps
+        apps_data = []
+        from backend.models import App
+        for app_domain, seconds in sorted(app_breakdown.items(), key=lambda x: x[1], reverse=True)[:10]:
+            hours = seconds / 3600
+            try:
+                app = App.objects.get(domain=app_domain)
+                apps_data.append({
+                    "name": app.app_name,
+                    "domain": app_domain,
+                    "hours": round(hours, 2),
+                    "category": "App"
+                })
+            except App.DoesNotExist:
+                apps_data.append({
+                    "name": app_domain,
+                    "domain": app_domain,
+                    "hours": round(hours, 2),
+                    "category": "Unknown"
+                })
+        
+        # Location data
+        location_count = child.location_history.filter(timestamp__gte=thirty_days_ago).count()
+        latest_location = child.location_history.order_by('-timestamp').first()
+        
+        # Site access data
+        site_logs = child.site_access_logs.filter(timestamp__gte=thirty_days_ago)
+        total_sites = site_logs.count()
+        blocked_sites = site_logs.filter(accessed=False).count()
+        
+        # Restricted apps
+        restricted_apps = child.restricted_apps or {}
+        
+        # Build context JSON for AI
+        context_data = {
+            "user_id": child_hash,
+            "child_name": child.get_full_name(),
+            "period": f"{thirty_days_ago.date()} to {timezone.now().date()}",
+            "total_screen_time_hours": round(total_screen_time_hours, 2),
+            "daily_average_hours": round(avg_daily_hours, 2),
+            "apps": apps_data,
+            "total_apps": len(app_breakdown),
+            "location_tracking": {
+                "total_locations": location_count,
+                "latest_location": {
+                    "latitude": latest_location.latitude if latest_location else None,
+                    "longitude": latest_location.longitude if latest_location else None,
+                    "timestamp": latest_location.timestamp.isoformat() if latest_location else None
+                } if latest_location else None
+            },
+            "site_access": {
+                "total_sites": total_sites,
+                "blocked_sites": blocked_sites,
+                "accessed_sites": total_sites - blocked_sites
+            },
+            "restricted_apps": restricted_apps,
+            "parental_limits_configured": len(restricted_apps) > 0
+        }
+        
+        # Import and call the insights agent
+        import sys
+        import os
+        
+        
+        try:
+            from agentic_scripts.insights_agent import query_gpt_with_toon_context
+            
+            # Call the AI agent
+            ai_response = query_gpt_with_toon_context(context_data, question)
+            
+            return JsonResponse({
+                'status': 'success',
+                'answer': ai_response,
+                'child_hash': child_hash
+            })
+            
+        except ImportError as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'AI agent not available: {str(e)}'
+            }, status=500)
+        except Exception as e:
+            import traceback
+            print(f"Error calling AI agent: {str(e)}")
+            print(traceback.format_exc())
+            return JsonResponse({
+                'status': 'error',
+                'message': f'AI processing failed: {str(e)}'
+            }, status=500)
+        
+    except Child.DoesNotExist:
+        return JsonResponse({
+            'error': 'Child not found',
+            'status': 'error'
+        }, status=404)
+    except Exception as e:
+        import traceback
+        print(f"Error in AI insights: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'error': str(e),
+            'status': 'error'
+        }, status=500)

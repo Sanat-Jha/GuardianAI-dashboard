@@ -61,15 +61,14 @@
         </div>
       </div>
       
-      <!-- Status Badge -->
+      <!-- AI Insights Button -->
       <div class="mt-4 sm:mt-0">
-        <span class="inline-flex items-center gap-2 px-4 py-2 bg-lime-500/10 text-lime-400 rounded-lg text-sm font-semibold border border-lime-500/30 shadow-lg shadow-lime-500/10 group-hover:shadow-lime-500/20 transition-all">
-          <span class="relative flex h-2.5 w-2.5">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-lime-500"></span>
-          </span>
-          Active
-        </span>
+        <button type="button" onclick="openAIInsightsModal('{{ child.child_hash }}', '{{ child.get_full_name }}')" class="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-semibold border border-primary/30 hover:bg-primary/20 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          AI Insights
+        </button>
       </div>
     </div>
     
