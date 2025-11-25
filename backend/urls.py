@@ -14,4 +14,5 @@ urlpatterns = [
     path('api/blocked-apps/<str:child_hash>/', views.get_blocked_apps, name='get_blocked_apps'),
     path('api/blocked-apps/<str:child_hash>/update/', views.update_blocked_apps, name='update_blocked_apps'),
     path('api/apps/search/', views.search_available_apps, name='search_available_apps'),
+    path('api/child/<str:child_hash>/profile-image/', views.get_child_profile_image, name='get_child_profile_image'),
 ]
