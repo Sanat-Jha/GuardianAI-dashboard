@@ -166,6 +166,7 @@ class Child(AbstractBaseUser, PermissionsMixin):
 	is_active = models.BooleanField(default=True)
 	date_joined = models.DateTimeField(default=timezone.now)
 	restricted_apps = models.JSONField(default=dict, blank=True, help_text='Dictionary of restricted apps with time limits: {"package.name": hours}')
+	profile_image = models.ImageField(upload_to='child_profiles/', null=True, blank=True, help_text='Child profile picture')
 
 	# Override Permission/Group relations from PermissionsMixin to avoid reverse accessor clashes
 	groups = models.ManyToManyField(

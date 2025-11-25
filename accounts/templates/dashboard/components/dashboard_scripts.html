@@ -1591,4 +1591,80 @@ window.selectChild = function(childHash) {
   // Load restricted apps after a short delay to ensure dashboard is visible
   setTimeout(() => loadRestrictedApps(childHash), 300);
 }
+
+// Profile Image Upload Function
+function uploadProfileImage(childHash, fileInput) {
+  const file = fileInput.files[0];
+  if (!file) {
+    return;
+  }
+  
+  // Client-side validation
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  
+  if (file.size > maxSize) {
+    showToast('File size too large. Maximum size is 5MB.', 'error');
+    fileInput.value = ''; // Clear the input
+    return;
+  }
+  
+  if (!allowedTypes.includes(file.type)) {
+    showToast('Invalid file type. Please upload a JPG, PNG, GIF, or WEBP image.', 'error');
+    fileInput.value = ''; // Clear the input
+    return;
+  }
+  
+  // Create FormData and upload
+  const formData = new FormData();
+  formData.append('profile_image', file);
+  
+  // Show loading state
+  const profileDiv = document.querySelector(`[onclick*="${childHash}"]`);
+  if (profileDiv) {
+    profileDiv.style.opacity = '0.6';
+    profileDiv.style.pointerEvents = 'none';
+  }
+  
+  fetch(`/accounts/child/${childHash}/upload-profile-image/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'success') {
+      // Update the profile image
+      const profileImage = document.getElementById(`profileImage${childHash}`);
+      const profileInitial = document.getElementById(`profileInitial${childHash}`);
+      
+      if (profileImage) {
+        // Update existing image
+        profileImage.src = data.image_url + '?t=' + new Date().getTime(); // Cache bust
+      } else if (profileInitial) {
+        // Replace initial with image
+        const container = profileInitial.parentElement;
+        container.innerHTML = `<img src="${data.image_url}" alt="Profile" class="w-full h-full object-cover" id="profileImage${childHash}">`;
+      }
+      
+      showToast('Profile picture updated successfully!', 'success');
+    } else {
+      showToast(data.message || 'Failed to upload image', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Upload error:', error);
+    showToast('An error occurred while uploading the image', 'error');
+  })
+  .finally(() => {
+    // Restore state
+    if (profileDiv) {
+      profileDiv.style.opacity = '1';
+      profileDiv.style.pointerEvents = 'auto';
+    }
+    fileInput.value = ''; // Clear the input for future uploads
+  });
+}
 </script>

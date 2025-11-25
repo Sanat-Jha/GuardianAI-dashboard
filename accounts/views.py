@@ -1,8 +1,13 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from PIL import Image
+import os
 
-from .models import Guardian
+from .models import Guardian, Child
 
 
 def signup_view(request):
@@ -45,4 +50,86 @@ def logout_view(request):
 def password_reset_info(request):
 	# Simple page explaining password reset; for production use Django's password reset views
 	return render(request, 'accounts/password_reset.html')
+
+
+@login_required
+@require_http_methods(["POST"])
+def upload_child_profile_image(request, child_hash):
+	"""Handle profile image upload for a child.
+	
+	Validates:
+	- File type (must be image: jpg, jpeg, png, gif, webp)
+	- File size (max 5MB)
+	- User permission (guardian must own this child)
+	"""
+	try:
+		# Get the child and verify guardian owns it
+		child = get_object_or_404(Child, child_hash=child_hash)
+		
+		# Verify the logged-in guardian has this child
+		if not request.user.children.filter(child_hash=child_hash).exists():
+			return JsonResponse({
+				'status': 'error',
+				'message': 'You do not have permission to edit this child.'
+			}, status=403)
+		
+		# Check if file was uploaded
+		if 'profile_image' not in request.FILES:
+			return JsonResponse({
+				'status': 'error',
+				'message': 'No image file provided.'
+			}, status=400)
+		
+		profile_image = request.FILES['profile_image']
+		
+		# Validate file size (5MB max)
+		MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB in bytes
+		if profile_image.size > MAX_FILE_SIZE:
+			return JsonResponse({
+				'status': 'error',
+				'message': 'File size too large. Maximum size is 5MB.'
+			}, status=400)
+		
+		# Validate file type
+		ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+		file_ext = profile_image.name.split('.')[-1].lower()
+		
+		if file_ext not in ALLOWED_EXTENSIONS:
+			return JsonResponse({
+				'status': 'error',
+				'message': f'Invalid file type. Allowed types: {", ".join(ALLOWED_EXTENSIONS)}'
+			}, status=400)
+		
+		# Validate that it's actually an image using PIL
+		try:
+			img = Image.open(profile_image)
+			img.verify()  # Verify it's a valid image
+			profile_image.seek(0)  # Reset file pointer after verify
+		except Exception:
+			return JsonResponse({
+				'status': 'error',
+				'message': 'Invalid image file.'
+			}, status=400)
+		
+		# Delete old profile image if exists
+		if child.profile_image:
+			old_image_path = child.profile_image.path
+			if os.path.exists(old_image_path):
+				os.remove(old_image_path)
+		
+		# Save new profile image
+		child.profile_image = profile_image
+		child.save()
+		
+		return JsonResponse({
+			'status': 'success',
+			'message': 'Profile image updated successfully.',
+			'image_url': child.profile_image.url
+		})
+		
+	except Exception as e:
+		return JsonResponse({
+			'status': 'error',
+			'message': f'An error occurred: {str(e)}'
+		}, status=500)
 
