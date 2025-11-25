@@ -25,6 +25,6 @@ urlpatterns = [
     path('', include('backend.urls')),
 ]
 
-# Serve media files in development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files (for both development and production)
+# In production on PythonAnywhere, you should also configure static file mapping in Web tab
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
