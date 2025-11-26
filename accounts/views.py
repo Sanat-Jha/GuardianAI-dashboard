@@ -61,6 +61,44 @@ def password_reset_info(request):
 
 @login_required
 @require_http_methods(["POST"])
+def delete_child(request, child_hash):
+	"""Delete a child and all related data.
+	
+	Validates that the guardian owns this child before deletion.
+	All related data (ScreenTime, LocationHistory, SiteAccessLog, AppScreenTime) 
+	will be automatically deleted due to CASCADE on_delete.
+	"""
+	try:
+		# Get the child and verify guardian owns it
+		child = get_object_or_404(Child, child_hash=child_hash)
+		
+		# Verify the logged-in guardian has this child
+		if not request.user.children.filter(child_hash=child_hash).exists():
+			return JsonResponse({
+				'status': 'error',
+				'message': 'You do not have permission to delete this child.'
+			}, status=403)
+		
+		# Store child name for response message
+		child_name = child.get_full_name()
+		
+		# Delete the child (all related data will cascade delete)
+		child.delete()
+		
+		return JsonResponse({
+			'status': 'success',
+			'message': f'{child_name} has been deleted successfully.'
+		})
+		
+	except Exception as e:
+		return JsonResponse({
+			'status': 'error',
+			'message': f'An error occurred: {str(e)}'
+		}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
 def upload_child_profile_image(request, child_hash):
 	"""Handle profile image upload for a child.
 	

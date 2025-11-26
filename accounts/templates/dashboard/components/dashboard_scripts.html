@@ -5,6 +5,56 @@ function toggleAddChildModal() {
   modal.classList.toggle('hidden');
 }
 
+// Delete Child with Confirmation
+function confirmDeleteChild(childHash, childName) {
+  if (confirm(`Are you sure you want to delete ${childName}?\n\nThis will permanently delete all data including:\n- Screen time history\n- Location history\n- Site access logs\n- App usage data\n\nThis action cannot be undone.`)) {
+    deleteChild(childHash);
+  }
+}
+
+async function deleteChild(childHash) {
+  try {
+    const response = await fetch(`/child/${childHash}/delete/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCookie('csrftoken'),
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      // Show success message
+      alert(data.message);
+      
+      // Reload the page to refresh the child list
+      window.location.reload();
+    } else {
+      alert('Error: ' + data.message);
+    }
+  } catch (error) {
+    console.error('Error deleting child:', error);
+    alert('An error occurred while deleting the child. Please try again.');
+  }
+}
+
+// Helper function to get CSRF token
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
 // Close modal on outside click
 document.getElementById('addChildModal')?.addEventListener('click', function(e) {
   if (e.target === this) {

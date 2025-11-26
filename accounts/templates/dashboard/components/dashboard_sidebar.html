@@ -46,28 +46,40 @@
         
         {% for child in children %}
           <!-- Existing child items code -->
-          <button 
-            onclick="selectChild('{{ child.child_hash }}')" 
-            class="child-item w-full text-left p-4 rounded-lg bg-darkbg1/50 border border-primary/10 hover:border-primary/30 hover:bg-darkbg1/80 transition-all group"
-            data-child-hash="{{ child.child_hash }}">
+          <div class="relative group/container">
+            <button 
+              onclick="selectChild('{{ child.child_hash }}')" 
+              class="child-item w-full text-left p-4 rounded-lg bg-darkbg1/50 border border-primary/10 hover:border-primary/30 hover:bg-darkbg1/80 transition-all group"
+              data-child-hash="{{ child.child_hash }}">
+              
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
+                  {{ child.first_name|first|upper }}
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                  <p class="text-textmain font-medium text-sm truncate">
+                    {{ child.get_full_name }}
+                  </p>
+                  <p class="text-textsec text-xs">
+                    Age: {% with child_data=children_data|get_item:child %}{% if child_data.age %}{{ child_data.age }}{% else %}N/A{% endif %}{% endwith %}
+                  </p>
+                </div>
+                
+                <div class="w-2 h-2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity child-indicator" data-child="{{ child.child_hash }}"></div>
+              </div>
+            </button>
             
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
-                {{ child.first_name|first|upper }}
-              </div>
-              
-              <div class="flex-1 min-w-0">
-                <p class="text-textmain font-medium text-sm truncate">
-                  {{ child.get_full_name }}
-                </p>
-                <p class="text-textsec text-xs">
-                  Age: {% with child_data=children_data|get_item:child %}{% if child_data.age %}{{ child_data.age }}{% else %}N/A{% endif %}{% endwith %}
-                </p>
-              </div>
-              
-              <div class="w-2 h-2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity child-indicator" data-child="{{ child.child_hash }}"></div>
-            </div>
-          </button>
+            {# Delete button - appears on hover #}
+            <button 
+              onclick="event.stopPropagation(); confirmDeleteChild('{{ child.child_hash }}', '{{ child.get_full_name|escapejs }}')"
+              class="absolute top-2 right-2 opacity-0 group-hover/container:opacity-100 transition-opacity p-2 rounded-md bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50"
+              title="Delete {{ child.get_full_name }}">
+              <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
         {% endfor %}
       </div>
       
