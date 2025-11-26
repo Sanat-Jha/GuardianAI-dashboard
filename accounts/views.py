@@ -12,6 +12,11 @@ from django.core.files.base import ContentFile
 from .models import Guardian, Child
 
 
+def landing_page(request):
+	"""Serve the landing page"""
+	return render(request, 'landing_page.html')
+
+
 def signup_view(request):
 	if request.method == 'POST':
 		email = request.POST.get('email')

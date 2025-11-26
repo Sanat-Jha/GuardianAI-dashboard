@@ -4,6 +4,8 @@ from . import views
 app_name = 'accounts'
 
 urlpatterns = [
+    # landing page
+    path('', views.landing_page, name='landing_page'),
     # web views
     path('signup/', views.signup_view, name='signup'),
     path('login/', views.login_view, name='login'),
