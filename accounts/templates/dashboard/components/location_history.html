@@ -137,6 +137,8 @@
   window.pathLines = window.pathLines || {};
   window.showPaths = window.showPaths || {};
   
+  // Locations come from backend in reverse chronological order (newest first)
+  // Reverse them so index 0 = oldest (start), last index = newest (latest)
   window.locationData['{{ child_hash }}'] = [
     {% for loc in locations %}
     {
@@ -145,7 +147,7 @@
       longitude: {{ loc.longitude }}
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
-  ];
+  ].reverse();
 
   window.showPaths['{{ child_hash }}'] = true;
 

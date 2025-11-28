@@ -621,9 +621,9 @@ function updateLocationMap(childHash, locations, count) {
     countBadge.innerHTML = `${count} <span class="text-xs text-textsec font-normal">entries</span>`;
   }
   
-  // Update location data
+  // Update location data (reverse to get chronological order: oldest first, newest last)
   if (window.locationData) {
-    window.locationData[childHash] = locations;
+    window.locationData[childHash] = locations.reverse();
   }
   
   const mapContainer = locationSection.querySelector('.location-map-container');
