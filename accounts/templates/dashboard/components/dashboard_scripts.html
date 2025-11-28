@@ -1676,7 +1676,7 @@ function uploadProfileImage(childHash, fileInput) {
     profileDiv.style.pointerEvents = 'none';
   }
   
-  fetch(`/accounts/child/${childHash}/upload-profile-image/`, {
+  fetch(`/child/${childHash}/upload-profile-image/`, {
     method: 'POST',
     headers: {
       'X-CSRFToken': getCookie('csrftoken')
