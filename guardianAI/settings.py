@@ -46,12 +46,14 @@ print(f"OPENCAGE_API_KEY loaded: {'set' if OPENCAGE_API_KEY else 'not set'}")
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',  # Must be first for channels
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',  # Add channels
     'backend',
     'accounts'
 ]
@@ -84,6 +86,26 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'guardianAI.wsgi.application'
+
+# ASGI Application for WebSocket support
+ASGI_APPLICATION = 'guardianAI.asgi.application'
+
+# Channel layers configuration
+# Using in-memory channel layer for development (no Redis required)
+# For production, use Redis backend with channels-redis
+CHANNEL_LAYERS = {
+    'default': {
+        # In-memory backend for development
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        
+        # For production with Redis, uncomment below and comment above:
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'CONFIG': {
+        #     "hosts": [os.environ.get('REDIS_URL', 'redis://localhost:6379/0')],
+        # },
+    },
+}
+
 
 
 # Database

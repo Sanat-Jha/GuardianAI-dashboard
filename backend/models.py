@@ -225,6 +225,7 @@ class LocationHistory(models.Model):
         Expects dict with: child_hash, timestamp (iso), latitude, longitude
         """
         from accounts.models import Child
+        from dateutil import parser
         child_hash = data.get('child_hash')
         timestamp = data.get('timestamp')
         latitude = data.get('latitude')
@@ -235,6 +236,11 @@ class LocationHistory(models.Model):
             child = Child.objects.get(child_hash=child_hash)
         except Child.DoesNotExist:
             raise ValueError('unknown child_hash')
+        
+        # Parse timestamp string to datetime object
+        if isinstance(timestamp, str):
+            timestamp = parser.parse(timestamp)
+        
         obj = LocationHistory.objects.create(
             child=child,
             timestamp=timestamp,
@@ -281,6 +287,7 @@ class SiteAccessLog(models.Model):
         Expects child_hash and a list of dicts: {timestamp, url, accessed}
         """
         from accounts.models import Child
+        from dateutil import parser
         if not child_hash or not isinstance(log_list, list):
             raise ValueError('child_hash and list of logs required')
         try:
@@ -294,6 +301,11 @@ class SiteAccessLog(models.Model):
             accessed = entry.get('accessed')
             if not timestamp or url is None or accessed is None:
                 continue
+            
+            # Parse timestamp string to datetime object
+            if isinstance(timestamp, str):
+                timestamp = parser.parse(timestamp)
+            
             obj = SiteAccessLog.objects.create(
                 child=child,
                 timestamp=timestamp,

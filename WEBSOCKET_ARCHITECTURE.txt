@@ -1,0 +1,246 @@
+# WebSocket Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Mobile Client (Android/iOS)                        │
+│                                                                               │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  GuardianAI Client SDK                                               │   │
+│  │                                                                       │   │
+│  │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │   │
+│  │  │  Connection  │    │    Message   │    │    Buffer    │          │   │
+│  │  │   Manager    │───▶│   Handler    │───▶│   Manager    │          │   │
+│  │  └──────────────┘    └──────────────┘    └──────────────┘          │   │
+│  │         │                    │                    │                  │   │
+│  │         │                    │                    │                  │   │
+│  └─────────┼────────────────────┼────────────────────┼──────────────────┘   │
+│            │                    │                    │                      │
+└────────────┼────────────────────┼────────────────────┼──────────────────────┘
+             │                    │                    │
+             │ (1) Connect        │ (2) Send Data     │ (3) Fallback
+             │                    │                    │
+             ▼                    ▼                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                Network Layer                                 │
+│                                                                               │
+│         WebSocket (ws://)                           HTTP (http://)           │
+│         Primary Connection                          Fallback Method          │
+│                                                                               │
+└─────────────┬───────────────────────────────────────┬───────────────────────┘
+              │                                       │
+              ▼                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Backend Server (Django)                             │
+│                                                                               │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                        ASGI Application (asgi.py)                       │ │
+│  │                                                                          │ │
+│  │    ┌─────────────────────────────────────────────────────────────┐    │ │
+│  │    │              ProtocolTypeRouter                              │    │ │
+│  │    │                                                               │    │ │
+│  │    │    ┌─────────────────┐         ┌─────────────────┐         │    │ │
+│  │    │    │      HTTP       │         │    WebSocket    │         │    │ │
+│  │    │    │   (Django App)  │         │  (Channels)     │         │    │ │
+│  │    │    └────────┬────────┘         └────────┬────────┘         │    │ │
+│  │    │             │                           │                   │    │ │
+│  │    └─────────────┼───────────────────────────┼───────────────────┘    │ │
+│  └──────────────────┼───────────────────────────┼────────────────────────┘ │
+│                     │                           │                           │
+│                     ▼                           ▼                           │
+│         ┌───────────────────────┐   ┌───────────────────────┐             │
+│         │   backend/views.py    │   │  backend/consumers.py │             │
+│         │                       │   │                       │             │
+│         │  • api_ingest()       │   │  • IngestConsumer    │             │
+│         │    (HTTP endpoint)    │   │  • IngestAuthConsumer│             │
+│         │                       │   │                       │             │
+│         │  POST /api/ingest/    │   │  ws://.../ingest/    │             │
+│         └───────────┬───────────┘   └───────────┬───────────┘             │
+│                     │                           │                           │
+│                     │         Data              │                           │
+│                     └───────────┬───────────────┘                           │
+│                                 │                                           │
+│                                 ▼                                           │
+│                 ┌───────────────────────────────┐                           │
+│                 │     backend/models.py         │                           │
+│                 │                               │                           │
+│                 │  • ScreenTime.store_from_dict │                           │
+│                 │  • LocationHistory.store...   │                           │
+│                 │  • SiteAccessLog.store...     │                           │
+│                 │  • App.create_from_package    │                           │
+│                 └───────────────┬───────────────┘                           │
+│                                 │                                           │
+│                                 ▼                                           │
+│                 ┌───────────────────────────────┐                           │
+│                 │        Database (SQLite)      │                           │
+│                 │                               │                           │
+│                 │  • ScreenTime                 │                           │
+│                 │  • AppScreenTime              │                           │
+│                 │  • LocationHistory            │                           │
+│                 │  • SiteAccessLog              │                           │
+│                 │  • App                        │                           │
+│                 │  • Child                      │                           │
+│                 └───────────────────────────────┘                           │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Channel Layers (Optional)                           │
+│                                                                               │
+│         Development                      Production                          │
+│  ┌──────────────────────┐        ┌──────────────────────┐                  │
+│  │  InMemoryChannelLayer│        │  RedisChannelLayer   │                  │
+│  │                      │        │                      │                  │
+│  │  • Single instance   │        │  • Multi-instance    │                  │
+│  │  • No setup required │        │  • Requires Redis    │                  │
+│  │  • Lost on restart   │        │  • Production ready  │                  │
+│  └──────────────────────┘        └──────────────────────┘                  │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              Connection Flow
+═══════════════════════════════════════════════════════════════════════════════
+
+HAPPY PATH (WebSocket Success):
+
+Mobile Client                     Backend Server                  Database
+     │                                  │                             │
+     │  (1) Connect WS                  │                             │
+     ├─────────────────────────────────▶│                             │
+     │                                  │  Validate child_hash        │
+     │                                  ├────────────────────────────▶│
+     │                                  │◀────────────────────────────┤
+     │  (2) Connection Ack              │                             │
+     │◀─────────────────────────────────┤                             │
+     │                                  │                             │
+     │  (3) Send Data (location)        │                             │
+     ├─────────────────────────────────▶│                             │
+     │                                  │  Store data                 │
+     │                                  ├────────────────────────────▶│
+     │                                  │◀────────────────────────────┤
+     │  (4) Acknowledgment              │                             │
+     │◀─────────────────────────────────┤                             │
+     │                                  │                             │
+     │  Keep connection alive           │                             │
+     │  Send data as needed             │                             │
+     │                                  │                             │
+
+
+FALLBACK PATH (WebSocket Fails):
+
+Mobile Client                     Backend Server                  Database
+     │                                  │                             │
+     │  (1) Try Connect WS              │                             │
+     ├─────────────X Connection Failed  │                             │
+     │                                  │                             │
+     │  (2) Buffer data locally         │                             │
+     │  Switch to HTTP mode             │                             │
+     │                                  │                             │
+     │  (3) POST to /api/ingest/        │                             │
+     ├─────────────────────────────────▶│                             │
+     │                                  │  Process & store            │
+     │                                  ├────────────────────────────▶│
+     │                                  │◀────────────────────────────┤
+     │  (4) HTTP 200 OK                 │                             │
+     │◀─────────────────────────────────┤                             │
+     │                                  │                             │
+     │  (5) Retry WS in background      │                             │
+     │  with exponential backoff        │                             │
+     │                                  │                             │
+
+
+RECONNECTION PATH:
+
+Mobile Client                     Backend Server
+     │                                  │
+     │  Connection lost                 │
+     ├─────────────X                    │
+     │                                  │
+     │  Buffer data locally             │
+     │                                  │
+     │  Attempt 1: Wait 1s              │
+     ├──────────────X Failed            │
+     │                                  │
+     │  Attempt 2: Wait 2s              │
+     ├──────────────X Failed            │
+     │                                  │
+     │  Attempt 3: Wait 4s              │
+     ├──────────────────────────────────▶
+     │  Connected!                      │
+     │◀─────────────────────────────────┤
+     │                                  │
+     │  Send buffered messages          │
+     ├─────────────────────────────────▶│
+     │  Resume normal operation         │
+     │                                  │
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              Data Flow
+═══════════════════════════════════════════════════════════════════════════════
+
+Message Types:
+
+┌─────────────────┐
+│  Screen Time    │  → ScreenTime model → AppScreenTime entries
+└─────────────────┘    App objects created/updated
+
+┌─────────────────┐
+│    Location     │  → LocationHistory model
+└─────────────────┘    GPS coordinates stored
+
+┌─────────────────┐
+│  Site Access    │  → SiteAccessLog model
+└─────────────────┘    URL access/block events
+
+
+Each message:
+  1. Validated by consumer
+  2. child_hash checked
+  3. Data processed
+  4. Stored in database
+  5. Acknowledgment sent
+  6. Old data pruned (365-day rolling window)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                          Deployment Architecture
+═══════════════════════════════════════════════════════════════════════════════
+
+Development:
+┌──────────────┐
+│ Django       │
+│ runserver    │  → InMemoryChannelLayer
+│ (port 8000)  │
+└──────────────┘
+
+Production:
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│    Nginx     │────▶│   Daphne     │────▶│    Redis     │
+│ (port 80/443)│     │ (ASGI Server)│     │ (Channel     │
+│              │     │ (port 8000)  │     │  Layer)      │
+└──────────────┘     └──────────────┘     └──────────────┘
+  │                        │
+  │ Static files           │ WebSocket/HTTP
+  │ /static/              │ connections
+  │ /media/               │
+  │                        ▼
+  │                  ┌──────────────┐
+  └─────────────────▶│   Database   │
+                     │   (SQLite/   │
+                     │   PostgreSQL)│
+                     └──────────────┘
+
+Multiple Instances (High Availability):
+┌──────────────┐
+│ Load Balancer│
+│   (nginx)    │
+└──────┬───────┘
+       │
+       ├──────────▶ Daphne Instance 1 ──┐
+       │                                 │
+       ├──────────▶ Daphne Instance 2 ──┼──▶ Redis ◀──▶ Database
+       │                                 │
+       └──────────▶ Daphne Instance 3 ──┘
+```
